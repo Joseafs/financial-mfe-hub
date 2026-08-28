@@ -1,4 +1,10 @@
-import { getRemoteDefinition, type RemoteName } from './remote-manifest';
+import {
+  clearReleaseOverride,
+  getRemoteDefinition,
+  getRemoteManifest,
+  selectStableRelease,
+  type RemoteName,
+} from './remote-manifest';
 
 export type RemoteLifecycleModule = {
   bootstrap: () => Promise<void>;
@@ -7,7 +13,8 @@ export type RemoteLifecycleModule = {
 };
 
 export function createRemoteFallback(remoteName: RemoteName, error: unknown): RemoteLifecycleModule {
-  const remote = getRemoteDefinition(remoteName);
+  const selectedRelease = getRemoteDefinition(remoteName);
+  const remote = getRemoteManifest().remotes[remoteName];
 
   return {
     bootstrap: async () => undefined,
@@ -23,12 +30,13 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
       section.setAttribute('role', 'alert');
       section.dataset.mfe = remoteName;
       section.dataset.releaseStatus = 'unavailable';
-      section.dataset.releaseVersion = remote.version;
+      section.dataset.releaseVersion = selectedRelease.version;
+      section.dataset.releaseChannel = selectedRelease.channel;
       section.style.position = 'relative';
 
       const releaseBadge = document.createElement('div');
       releaseBadge.dataset.releaseStatus = 'unavailable';
-      releaseBadge.dataset.releaseVersion = remote.version;
+      releaseBadge.dataset.releaseVersion = selectedRelease.version;
       releaseBadge.style.position = 'absolute';
       releaseBadge.style.top = '18px';
       releaseBadge.style.right = '18px';
@@ -39,7 +47,7 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
       releaseBadge.style.color = '#fee2e2';
       releaseBadge.style.fontSize = '11px';
       releaseBadge.style.fontWeight = '800';
-      releaseBadge.textContent = `UNAVAILABLE · expected v${remote.version}`;
+      releaseBadge.textContent = `UNAVAILABLE · ${selectedRelease.channel} v${selectedRelease.version}`;
 
       const title = document.createElement('strong');
       title.textContent = `${remoteName} remote unavailable`;
@@ -48,7 +56,7 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
       description.textContent = 'O Shell continua operacional e os demais MFEs permanecem disponíveis.';
 
       const metadata = document.createElement('code');
-      metadata.textContent = `expected v${remote.version} · ${remote.remoteEntry}`;
+      metadata.textContent = `${selectedRelease.channel} v${selectedRelease.version} · ${selectedRelease.remoteEntry}`;
 
       const actions = document.createElement('div');
       actions.className = 'shell-runtime-error__actions';
@@ -57,14 +65,38 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
       retryButton.type = 'button';
       retryButton.textContent = 'Tentar novamente';
       retryButton.addEventListener('click', () => window.location.reload());
+      actions.append(retryButton);
+
+      if (selectedRelease.channel === 'active' && remote.stable) {
+        const rollbackButton = document.createElement('button');
+        rollbackButton.type = 'button';
+        rollbackButton.dataset.rollbackTarget = remote.stable.version;
+        rollbackButton.textContent = `Rollback para stable v${remote.stable.version}`;
+        rollbackButton.addEventListener('click', () => {
+          selectStableRelease(remoteName);
+          window.location.reload();
+        });
+        actions.append(rollbackButton);
+      }
+
+      if (selectedRelease.channel === 'stable') {
+        const activeButton = document.createElement('button');
+        activeButton.type = 'button';
+        activeButton.textContent = `Voltar para active v${remote.active.version}`;
+        activeButton.addEventListener('click', () => {
+          clearReleaseOverride(remoteName);
+          window.location.reload();
+        });
+        actions.append(activeButton);
+      }
 
       const remoteLink = document.createElement('a');
-      remoteLink.href = remote.remoteEntry;
+      remoteLink.href = selectedRelease.remoteEntry;
       remoteLink.target = '_blank';
       remoteLink.rel = 'noreferrer';
       remoteLink.textContent = 'Abrir remoteEntry';
+      actions.append(remoteLink);
 
-      actions.append(retryButton, remoteLink);
       section.append(releaseBadge, title, description, metadata, actions);
       root.replaceChildren(section);
 

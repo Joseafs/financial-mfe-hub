@@ -26,6 +26,24 @@ Contém:
 - CI/CD, Terraform e estratégia de deploy;
 - critérios arquiteturais de aceite.
 
+### [`CI-CD.md`](./CI-CD.md)
+
+Especificação operacional detalhada do pipeline do projeto.
+
+Contém:
+
+- GitHub Actions e quality gates;
+- execução por mudanças afetadas com Turborepo;
+- testes unitários, integração, contratos e E2E no pipeline;
+- security gates;
+- Terraform `fmt`, `validate`, `plan` e `apply` protegido;
+- deploy independente de Shell, MFEs e BFF no Render;
+- estratégia Render após checks de CI vs deploy controlado por Actions;
+- runtime manifest e release identity;
+- smoke tests pós-deploy;
+- rollback e compatibilidade entre versões;
+- branch protection e rastreabilidade operacional.
+
 ### [`PROJECT-TASKS.md`](./PROJECT-TASKS.md)
 
 Backlog técnico incremental e rastreável.

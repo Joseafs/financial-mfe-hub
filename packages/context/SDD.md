@@ -2,136 +2,190 @@
 
 ## 1. Visão geral
 
-O **Financial MFE Hub** é uma POC de arquitetura distribuída de front-end voltada a um domínio financeiro fictício.
+O **Financial MFE Hub** é um case full-stack de arquitetura para um **hub financeiro fictício**. O projeto demonstra como Micro Frontends, contratos compartilhados, regras de negócio, interface, BFF, internacionalização, testes, observabilidade, CI/CD e infraestrutura podem evoluir juntos dentro de um monorepo.
 
-O objetivo principal não é reproduzir um banco real, mas exercitar problemas técnicos comuns em aplicações corporativas de alta criticidade:
+O objetivo não é reproduzir uma instituição financeira real, mas construir um case técnico próximo de cenários corporativos de alta criticidade, com fronteiras claras, deploy independente, contratos explícitos e decisões arquiteturais rastreáveis.
 
-- múltiplos times e domínios de front-end;
-- autonomia de desenvolvimento e deploy;
-- composição de aplicações em runtime;
-- compartilhamento controlado de módulos;
-- contratos tipados entre front-end e backend;
-- BFF como fronteira de integração;
-- segurança, observabilidade, performance e testes;
-- documentação orientada a decisões e tarefas incrementais.
-
-O projeto deve permanecer compreensível como portfólio técnico. Toda complexidade introduzida precisa ter uma justificativa arquitetural explícita.
+> Todos os dados, usuários, saldos, contas, transações, seguros e regras de negócio são fictícios.
 
 ---
 
-## 2. Objetivos
+## 2. Objetivos arquiteturais
 
-### 2.1 Objetivos funcionais
+O case deve demonstrar, de forma prática e verificável:
 
-A POC deve fornecer uma experiência fictícia de hub financeiro com, no mínimo:
+1. composição de Micro Frontends com **Single-SPA**;
+2. compartilhamento controlado de módulos em runtime com **Webpack Module Federation**;
+3. monorepo com **pnpm + Turborepo**;
+4. contratos runtime com **Zod** reutilizados entre front-end, BFF e testes;
+5. formulários com **React Hook Form + Zod** sem duplicação manual de regras portáveis;
+6. BFF em **Node.js + Fastify**;
+7. internacionalização com **PT-BR como idioma padrão** e **inglês** como alternativa;
+8. separação entre estado de servidor, estado local e comunicação cross-MFE;
+9. autenticação e autorização centralizadas no BFF;
+10. testes unitários, integração, contrato e E2E;
+11. medição de performance e Core Web Vitals;
+12. observabilidade com logs estruturados e correlation id;
+13. CI/CD reproduzível com **GitHub Actions**;
+14. infraestrutura AWS declarada com **Terraform**;
+15. deploy independente por aplicação;
+16. controle básico de custo da infraestrutura;
+17. documentação de decisões, trade-offs e evolução por tasks.
 
-- dashboard consolidado;
-- visualização de contas;
-- visualização de cartões e limites;
-- fluxo fictício de pagamentos e transferências;
-- área fictícia de seguros;
-- autenticação simulada ou controlada;
-- tratamento consistente de erros e indisponibilidades.
+---
 
-### 2.2 Objetivos arquiteturais
+## 3. Não objetivos
 
-O projeto deve demonstrar:
-
-1. composição de Micro Frontends com Single-SPA;
-2. compartilhamento de módulos com Webpack Module Federation;
-3. monorepo com pnpm + Turborepo;
-4. contratos Zod reutilizados entre front-end, BFF e testes;
-5. BFF em Fastify;
-6. isolamento de responsabilidades entre MFEs;
-7. deploy independente por aplicação;
-8. testes unitários, integração e E2E;
-9. observabilidade básica e tratamento de falhas;
-10. pipeline CI/CD reproduzível.
-
-### 2.3 Não objetivos
-
-Não faz parte da POC inicial:
+Não fazem parte do case:
 
 - integração com instituições financeiras reais;
 - movimentação financeira real;
-- armazenamento de dados bancários reais;
-- implementação completa de Open Finance;
+- uso de dados bancários reais;
+- Open Finance completo;
 - compliance regulatório completo;
-- event streaming distribuído;
 - arquitetura multi-região;
-- alta disponibilidade de produção real.
+- alta disponibilidade de produção real;
+- event streaming distribuído sem necessidade concreta;
+- adoção de tecnologia apenas para aumentar a lista de stack.
 
-Esses tópicos podem ser discutidos como evolução, mas não devem inflar o MVP.
-
----
-
-## 3. Princípios de arquitetura
-
-### 3.1 Fronteiras explícitas
-
-Cada aplicação deve possuir uma responsabilidade clara. Um MFE não deve acessar diretamente detalhes internos de outro MFE.
-
-### 3.2 Contratos antes de implementação
-
-Entradas e saídas relevantes devem possuir contratos explícitos. Zod será a principal ferramenta de validação runtime e inferência de tipos.
-
-### 3.3 Backend como autoridade
-
-Validação no front existe para UX. Toda entrada que chegar ao BFF deve ser considerada não confiável e validada novamente.
-
-### 3.4 Compartilhar apenas o necessário
-
-Module Federation não deve transformar todos os MFEs em aplicações fortemente acopladas. Compartilhamento runtime deve ser deliberado.
-
-### 3.5 Independência de deploy
-
-Os MFEs devem ser construídos de forma que possam evoluir e ser publicados independentemente, mesmo estando no mesmo monorepo.
-
-### 3.6 Falhas isoladas
-
-Uma falha em um MFE não deve, sempre que tecnicamente possível, derrubar toda a experiência.
-
-### 3.7 Complexidade justificável
-
-A POC existe para estudar MFE. Ainda assim, abstrações sem necessidade real devem ser evitadas.
+Toda complexidade precisa ter justificativa arquitetural explícita.
 
 ---
 
-## 4. Visão de alto nível
+## 4. Princípios
+
+### 4.1 Fronteiras explícitas
+
+Cada domínio possui ownership claro. Um MFE não pode importar internals de outro MFE.
+
+### 4.2 Contratos antes da implementação
+
+Entradas, saídas e eventos relevantes devem possuir contratos explícitos antes da implementação correspondente.
+
+### 4.3 Backend como autoridade
+
+Validação client-side existe por UX. O BFF sempre revalida requests e continua responsável por autenticação, autorização e regras dependentes de estado externo.
+
+### 4.4 Compartilhar apenas o necessário
+
+Module Federation não deve transformar os MFEs em um monólito distribuído. Módulos federados são APIs públicas e devem possuir ownership e contrato claros.
+
+### 4.5 Independência de deploy
+
+Estar no mesmo monorepo não implica deploy conjunto. Cada aplicação deve possuir artefato e promoção independentes.
+
+### 4.6 Falhas isoladas
+
+A falha de um remote não deve derrubar o Shell nem outros domínios quando tecnicamente evitável.
+
+### 4.7 Observabilidade e segurança por padrão
+
+Logs, correlation id, validação runtime, secrets fora do Git e tratamento de erro fazem parte do desenho, não de uma etapa final.
+
+---
+
+## 5. Visão de alto nível
 
 ```mermaid
 flowchart LR
-  User["Usuário"] --> Shell["Shell / Root Config\nSingle-SPA"]
+  User["Usuário"] --> CDN["CloudFront"]
+  CDN --> Static["S3\nShell + MFEs"]
+  Static --> Shell["Shell / Root Config\nSingle-SPA"]
 
   Shell --> Dashboard["Dashboard MFE"]
   Shell --> Accounts["Accounts MFE"]
   Shell --> Payments["Payments MFE"]
   Shell --> Insurance["Insurance MFE"]
 
-  Dashboard --> BFF["Fastify BFF"]
-  Accounts --> BFF
-  Payments --> BFF
-  Insurance --> BFF
+  Dashboard -. "Module Federation" .-> Shared["Módulos federados"]
+  Accounts -. "Module Federation" .-> Shared
+  Payments -. "Module Federation" .-> Shared
+  Insurance -. "Module Federation" .-> Shared
 
-  BFF --> AccountService["Accounts Service fictício"]
-  BFF --> PaymentService["Payments Service fictício"]
-  BFF --> InsuranceService["Insurance Service fictício"]
+  Dashboard --> API["API Gateway"]
+  Accounts --> API
+  Payments --> API
+  Insurance --> API
 
-  Contracts["packages/contracts"] --> Dashboard
+  API --> BFF["Fastify BFF\nAWS Lambda"]
+  BFF --> Services["Serviços financeiros fictícios"]
+  BFF --> Logs["CloudWatch"]
+
+  Contracts["packages/contracts\nZod"] --> Dashboard
   Contracts --> Accounts
   Contracts --> Payments
   Contracts --> Insurance
   Contracts --> BFF
 
-  UI["packages/ui"] --> Dashboard
-  UI --> Accounts
-  UI --> Payments
-  UI --> Insurance
+  I18n["packages/i18n\nPT-BR / EN"] --> Shell
+  I18n --> Dashboard
+  I18n --> Accounts
+  I18n --> Payments
+  I18n --> Insurance
+
+  Terraform["Terraform"] -. "provisiona" .-> CDN
+  Terraform -. "provisiona" .-> Static
+  Terraform -. "provisiona" .-> API
+  Terraform -. "provisiona" .-> BFF
+  Terraform -. "provisiona" .-> Logs
 ```
 
 ---
 
-## 5. Estrutura do monorepo
+## 6. Stack definida
+
+### Front-end
+
+- React;
+- TypeScript strict;
+- Tailwind CSS;
+- React Router;
+- Single-SPA;
+- Webpack 5;
+- Module Federation;
+- TanStack Query;
+- Zustand somente quando existir estado client-side realmente global;
+- React Hook Form;
+- Zod;
+- i18next + react-i18next.
+
+### BFF
+
+- Node.js;
+- Fastify;
+- TypeScript;
+- Zod;
+- `fastify-type-provider-zod` ou integração equivalente;
+- Swagger / OpenAPI;
+- logging estruturado.
+
+### Qualidade
+
+- Jest;
+- React Testing Library;
+- MSW;
+- Faker;
+- Playwright;
+- Storybook;
+- ESLint;
+- Prettier.
+
+### Plataforma
+
+- pnpm workspaces;
+- Turborepo;
+- GitHub Actions;
+- AWS S3;
+- AWS CloudFront;
+- AWS Lambda;
+- Amazon API Gateway;
+- Amazon CloudWatch;
+- AWS Budgets;
+- Terraform.
+
+---
+
+## 7. Estrutura alvo
 
 ```text
 apps/
@@ -144,119 +198,103 @@ apps/
 
 packages/
 ├── context/
+│   ├── README.md
+│   ├── SDD.md
+│   ├── PROJECT-TASKS.md
+│   └── adr/
 ├── contracts/
 ├── ui/
 ├── auth/
+├── i18n/
 ├── eslint-config/
 └── typescript-config/
+
+infrastructure/
+└── terraform/
+    ├── modules/
+    │   ├── frontend/
+    │   ├── bff/
+    │   ├── observability/
+    │   └── budget/
+    └── environments/
+        └── production/
 ```
 
-### 5.1 `apps/shell`
+O diretório `packages/context` é a fonte canônica de arquitetura, decisões e execução do projeto.
+
+---
+
+## 8. Responsabilidades por aplicação
+
+### `apps/shell`
 
 Responsável por:
 
-- bootstrap da aplicação;
-- registro dos MFEs no Single-SPA;
-- resolução de rotas;
-- layout estrutural global;
-- fallback global;
-- descoberta/configuração dos remotes;
-- composição de navegação global.
+- bootstrap Single-SPA;
+- registro e descoberta dos MFEs;
+- navegação global;
+- layout estrutural;
+- fallback de remote;
+- runtime config;
+- coordenação de idioma;
+- carregamento de dependências compartilhadas quando necessário.
 
-Não deve conter regras de domínio de Accounts, Payments ou Insurance.
+Não contém regras de Accounts, Payments ou Insurance.
 
-### 5.2 `apps/dashboard-mfe`
-
-Responsável por:
+### `dashboard-mfe`
 
 - visão consolidada;
-- resumo de saldos fictícios;
-- cards de atalhos;
-- indicadores simples;
-- composição somente via contratos públicos.
+- atalhos;
+- indicadores fictícios;
+- composição apenas por contratos públicos/BFF.
 
-### 5.3 `apps/accounts-mfe`
-
-Responsável por:
+### `accounts-mfe`
 
 - contas;
 - cartões;
 - limites;
-- detalhes relacionados ao domínio de Accounts.
+- extrato fictício.
 
-### 5.4 `apps/payments-mfe`
-
-Responsável por:
+### `payments-mfe`
 
 - PIX fictício;
 - boleto fictício;
 - transferências fictícias;
-- formulários e confirmações do domínio de Payments.
+- formulários e confirmações.
 
-### 5.5 `apps/insurance-mfe`
-
-Responsável por:
+### `insurance-mfe`
 
 - produtos de seguro fictícios;
 - simulações;
 - seguros contratados fictícios.
 
-### 5.6 `apps/bff`
+### `apps/bff`
 
-Responsável por:
-
-- expor endpoints adequados às necessidades do front-end;
-- validar requests;
-- autenticar e autorizar operações;
-- agregar respostas de serviços;
-- normalizar erros;
-- aplicar regras que dependem de dados externos;
-- ocultar detalhes das APIs downstream.
-
-### 5.7 `packages/contracts`
-
-Responsável por:
-
-- schemas Zod;
-- tipos inferidos;
-- DTOs compartilhados;
-- enums de contrato;
-- schemas de query params;
-- schemas de resposta quando fizer sentido.
-
-Não deve conter regra de negócio dependente de persistência ou infraestrutura.
-
-### 5.8 `packages/ui`
-
-Responsável por:
-
-- componentes visuais reutilizáveis;
-- tokens de design;
-- acessibilidade base;
-- componentes sem regra de domínio.
-
-### 5.9 `packages/auth`
-
-Responsável por abstrações públicas de autenticação utilizadas pelos MFEs, sem expor implementação sensível.
+- autenticação;
+- autorização;
+- validação runtime;
+- composição de respostas;
+- adaptação de downstreams;
+- regras que dependem de estado externo;
+- logging e correlation id;
+- normalização de erros.
 
 ---
 
-## 6. Single-SPA
+## 9. Single-SPA
 
-Single-SPA será o mecanismo de orquestração das aplicações.
+Single-SPA é o orquestrador de lifecycle e rota.
 
-O Shell deve registrar aplicações com regras de ativação explícitas.
-
-Exemplo conceitual:
+Rotas iniciais:
 
 ```text
-/dashboard  -> dashboard-mfe
-/accounts   -> accounts-mfe
-/payments   -> payments-mfe
-/insurance  -> insurance-mfe
+/dashboard   -> dashboard-mfe
+/accounts    -> accounts-mfe
+/payments    -> payments-mfe
+/insurance   -> insurance-mfe
 ```
 
-Cada MFE deve suportar o ciclo de vida esperado:
+Cada MFE deve suportar:
 
 ```text
 bootstrap
@@ -264,65 +302,43 @@ mount
 unmount
 ```
 
-### 6.1 Regra de ownership de rotas
+O Shell controla a ativação global; o roteamento interno de cada domínio pertence ao respectivo MFE.
 
-Cada rota de domínio deve possuir um único owner principal.
+### Falha de carregamento
 
-Exemplo:
+Se um MFE falhar:
 
-```text
-/accounts/*   -> accounts-mfe
-/payments/*   -> payments-mfe
-```
-
-O Shell controla roteamento global. O roteamento interno de cada domínio pode ser controlado pelo próprio MFE.
-
-### 6.2 Falha de carregamento
-
-Se um MFE falhar ao carregar:
-
-- o Shell permanece operacional;
-- uma fallback UI é exibida;
-- o erro é registrado;
-- deve existir ação de retry quando aplicável.
+- Shell permanece operacional;
+- fallback é exibido;
+- retry pode ser oferecido;
+- erro é registrado com nome do MFE, rota, ambiente e contexto.
 
 ---
 
-## 7. Module Federation
+## 10. Module Federation
 
-Module Federation será utilizado para estudar compartilhamento runtime entre aplicações.
+Webpack Module Federation será usado para compartilhamento runtime controlado.
 
-### 7.1 Casos permitidos
+### Regras
 
-Inicialmente, serão priorizados casos de uso controlados:
+- React e React DOM devem possuir estratégia explícita de singleton;
+- nenhum MFE importa `src` interno de outro;
+- todo módulo exposto é tratado como API pública;
+- mudanças incompatíveis precisam de migração coordenada;
+- não federar componentes apenas porque são reutilizáveis; componentes comuns preferencialmente vivem em `packages/ui`;
+- federation deve demonstrar pelo menos um caso real de composição cross-domain ou shell integration.
 
-- componentes de navegação ou composição realmente necessários em runtime;
-- módulos de integração do Shell;
-- eventual compartilhamento de widgets cross-domain com ownership explícito.
+### Cache de remotes
 
-### 7.2 Shared dependencies
+`remoteEntry.js` deve possuir cache curto ou revalidação apropriada. Chunks com hash podem usar cache longo e `immutable`.
 
-Dependências críticas devem evitar múltiplas instâncias quando isso causar problemas de runtime.
-
-Candidatas a `shared singleton`:
-
-- React;
-- React DOM;
-- bibliotecas cuja duplicação quebre contextos globais.
-
-A configuração deve ser mínima e documentada.
-
-### 7.3 Regra contra acoplamento
-
-Um MFE não deve importar internals arbitrários de outro.
-
-Interfaces federadas são APIs públicas. Alterações incompatíveis precisam ser tratadas como breaking changes.
+Isso reduz risco de Shell apontar para metadata antiga com chunks já substituídos.
 
 ---
 
-## 8. Monorepo e Turborepo
+## 11. Monorepo e Turborepo
 
-Turborepo será responsável por coordenar tarefas do workspace.
+Turborepo coordena tarefas, cache e dependências do workspace.
 
 Pipelines previstos:
 
@@ -335,55 +351,41 @@ build
 e2e
 ```
 
-As dependências entre tarefas devem refletir as dependências reais entre packages e apps.
-
-O monorepo simplifica desenvolvimento e padronização, mas não elimina a meta de independência de deploy.
+Turborepo não substitui MFE. O monorepo melhora DX; a independência existe no runtime e no deploy.
 
 ---
 
-## 9. Contratos Zod
+## 12. Contratos Zod
 
-Os contratos compartilhados seguem o princípio:
+`packages/contracts` é a fonte canônica para contratos portáveis.
+
+Princípio:
 
 ```text
-Definir uma vez -> inferir tipos -> validar em todas as fronteiras relevantes
+Definir uma vez -> inferir tipos -> validar nas fronteiras
 ```
 
 Exemplo:
 
 ```ts
-import { z } from 'zod';
-
 export const transferSchema = z.object({
   destinationAccount: z.string().min(1),
   amount: z.number().positive(),
   description: z.string().max(140).optional(),
 });
-
-export type TransferInput = z.infer<typeof transferSchema>;
 ```
 
-### 9.1 Front-end
-
-O schema pode ser conectado ao formulário para:
+### Compartilhado
 
 - required;
-- formato;
+- formatos;
 - limites;
 - enumerações;
-- coerência local simples.
+- DTOs;
+- query params;
+- schemas de resposta quando útil.
 
-### 9.2 BFF
-
-O BFF valida novamente o request usando o mesmo contrato.
-
-Nunca confiar em validação client-side.
-
-### 9.3 O que não vai para Zod compartilhado
-
-Regras dependentes de estado externo não pertencem ao contrato compartilhado.
-
-Exemplos:
+### Exclusivo do servidor
 
 ```text
 amount > 0                         -> Zod compartilhado
@@ -392,60 +394,36 @@ conta de destino existe           -> domínio/BFF
 usuário pode operar aquela conta  -> autorização/BFF
 ```
 
+Modelos de persistência não devem ser expostos diretamente como contratos HTTP.
+
 ---
 
-## 10. Formulários
+## 13. Formulários
 
-A estratégia deve evitar duplicação manual de regras entre front e backend.
+React Hook Form será a biblioteca padrão de formulário.
 
-Fluxo:
+Integração:
 
-```mermaid
-sequenceDiagram
-  participant U as Usuário
-  participant M as Payments MFE
-  participant Z as Zod Contract
-  participant B as Fastify BFF
-  participant S as Serviço fictício
-
-  U->>M: preenche formulário
-  M->>Z: valida localmente
-  Z-->>M: erros de UX ou dados válidos
-  M->>B: envia request
-  B->>Z: valida novamente
-  B->>S: executa regra autorizada
-  S-->>B: resultado
-  B-->>M: resposta normalizada
-  M-->>U: feedback
+```text
+React Hook Form
+      │
+ zodResolver
+      │
+packages/contracts
+      │
+      ├── validação imediata no front
+      └── revalidação autoritativa no BFF
 ```
 
-O front deve mapear erros de contrato de maneira consistente para os campos.
+O front não deve duplicar manualmente regras já existentes no schema.
 
-Erros de regra de negócio devem ser representados por códigos estáveis, não por parsing de mensagens humanas.
+Erros de domínio devem usar códigos estáveis, sem parsing de mensagens humanas.
 
 ---
 
-## 11. BFF com Fastify
+## 14. BFF com Fastify
 
-O BFF é uma camada de adaptação entre a experiência frontend e os serviços fictícios.
-
-### 11.1 Responsabilidades
-
-- autenticação;
-- autorização;
-- validação runtime;
-- agregação;
-- transformação de DTOs;
-- normalização de erros;
-- correlação de requests;
-- logging;
-- rate limiting quando aplicável.
-
-### 11.2 O que o BFF não deve virar
-
-O BFF não deve virar um backend monolítico com regras de todos os domínios misturadas.
-
-A organização interna deve separar módulos:
+Estrutura conceitual:
 
 ```text
 src/
@@ -455,94 +433,84 @@ src/
 │   └── insurance/
 ├── plugins/
 ├── shared/
+├── app.ts
 └── server.ts
 ```
 
 Cada módulo deve separar HTTP, aplicação e integração quando necessário.
 
+O BFF não deve virar um monólito sem fronteiras internas.
+
+### API documentation
+
+OpenAPI/Swagger deve ser gerado a partir das definições da API sempre que possível, evitando documentação manual divergente.
+
 ---
 
-## 12. Estado no front-end
+## 15. Internacionalização
 
-### 12.1 Estado de servidor
+Idiomas suportados inicialmente:
 
-TanStack Query será responsável por:
+```text
+pt-BR -> padrão
+en    -> alternativo
+```
 
-- fetching;
-- cache;
-- loading/error states;
-- invalidação;
-- retry controlado.
+`packages/i18n` concentra configuração comum, tipos e primitivas de idioma.
 
-### 12.2 Estado global local
+### Ownership
 
-Zustand só deve ser utilizado quando existir estado client-side realmente global.
+- Shell é a fonte de verdade da preferência atual;
+- cada MFE mantém seus próprios namespaces de tradução;
+- mudança de idioma ocorre por contrato público;
+- nenhum MFE acessa store interna de outro;
+- preferência pode ser persistida no browser por ser configuração não sensível;
+- `<html lang>` deve acompanhar o locale atual;
+- textos retornados por erro de domínio devem preferir códigos estáveis, permitindo tradução no cliente quando adequado.
 
-Não deve substituir TanStack Query para dados originados do servidor.
+O sistema deve ter fallback explícito para `pt-BR`.
 
-### 12.3 Estado entre MFEs
+---
 
-Evitar store global compartilhada entre MFEs.
+## 16. Estado e comunicação entre MFEs
 
-Preferência:
+### Server state
+
+TanStack Query para fetching, cache, invalidação e retry controlado.
+
+### Estado client-side
+
+Zustand apenas quando necessário e preferencialmente limitado ao owner do domínio.
+
+### Cross-MFE
+
+Ordem de preferência:
 
 1. URL;
-2. BFF/server state;
-3. eventos públicos bem definidos;
-4. módulo federado de integração apenas quando necessário.
+2. server state/BFF;
+3. custom props/contratos públicos do Shell;
+4. eventos tipados;
+5. módulo federado somente quando houver justificativa.
+
+Evitar store global compartilhada entre todos os MFEs.
 
 ---
 
-## 13. Comunicação entre MFEs
-
-A comunicação deve ser mínima e explícita.
-
-### Estratégias preferidas
-
-- navegação por URL;
-- contratos públicos;
-- eventos de domínio frontend quando justificável;
-- Module Federation para módulos públicos específicos.
-
-### Evitar
-
-- importar store interna de outro MFE;
-- manipular DOM de outro MFE;
-- acessar internals privados de outro app;
-- depender de ordem implícita de carregamento.
-
----
-
-## 14. Autenticação e autorização
-
-A POC deve diferenciar autenticação de autorização.
-
-### 14.1 Autenticação
+## 17. Autenticação e autorização
 
 Preferência arquitetural:
 
-- sessão/token controlado pelo BFF;
-- cookie `HttpOnly` quando houver sessão real na POC;
-- evitar armazenar tokens sensíveis em `localStorage`.
-
-### 14.2 Autorização
-
-O front pode esconder ações para UX, mas autorização real é responsabilidade do BFF.
-
-Exemplo:
-
-```text
-Botão não renderizado -> UX
-BFF rejeita operação não autorizada -> segurança
-```
+- autenticação controlada pelo BFF;
+- cookie `HttpOnly`, `Secure` e `SameSite` apropriado quando sessão for implementada;
+- tokens sensíveis não ficam em `localStorage`;
+- front pode esconder ações por UX, mas BFF valida permissão real;
+- logs não registram tokens, cookies ou dados sensíveis.
 
 ---
 
-## 15. Modelo de erros
+## 18. Modelo de erros
 
-O BFF deve retornar formato consistente.
-
-Exemplo conceitual:
+Formato base:
 
 ```json
 {
@@ -554,7 +522,7 @@ Exemplo conceitual:
 }
 ```
 
-Categorias iniciais:
+Categorias mínimas:
 
 - `VALIDATION_ERROR`;
 - `UNAUTHENTICATED`;
@@ -564,185 +532,219 @@ Categorias iniciais:
 - `DOWNSTREAM_UNAVAILABLE`;
 - `INTERNAL_ERROR`.
 
-Mensagens de infraestrutura não devem vazar para o cliente.
+Detalhes de infraestrutura nunca devem vazar ao navegador.
 
 ---
 
-## 16. Segurança
+## 19. Segurança
 
-Mesmo sendo POC, devem ser demonstradas boas práticas.
+Baseline mínimo:
 
-### Requisitos mínimos
-
-- headers de segurança;
 - CORS restrito;
-- cookies seguros quando utilizados;
-- validação runtime;
-- sanitização quando aplicável;
+- headers de segurança;
+- cookies seguros;
+- validação runtime de request e configuração;
+- rate limit em endpoints sensíveis quando aplicável;
 - secrets fora do Git;
-- rate limiting em endpoints sensíveis quando aplicável;
-- ausência de dados financeiros reais;
-- logs sem informações sensíveis.
-
-### Trust boundaries
-
-```text
-Browser -> não confiável
-Request -> não confiável
-BFF -> valida e autoriza
-Serviços downstream -> respostas também precisam de tratamento
-```
+- least privilege em IAM;
+- redaction de logs;
+- nenhuma informação financeira real;
+- dependabot ou mecanismo equivalente para dependências;
+- proteção contra publicação acidental de `.env` e artefatos sensíveis.
 
 ---
 
-## 17. Performance
+## 20. Performance e acessibilidade
 
-A POC deve medir e discutir performance, não apenas mencionar otimização.
-
-### Métricas principais
+### Métricas
 
 - LCP;
 - INP;
 - CLS;
-- tamanho dos bundles;
-- tempo de carregamento dos remotes;
+- tamanho de bundle;
+- duplicação de dependências;
+- tempo de carregamento de remotes;
 - waterfall de requests.
 
 ### Estratégias
 
-- lazy loading por rota/MFE;
+- lazy loading por domínio;
+- assets com hash;
+- cache adequado no CloudFront;
 - evitar duplicação de React;
-- split de bundles;
-- cache de assets com hash;
-- preload apenas quando justificado;
-- minimizar shared modules excessivos;
-- analisar impacto de Module Federation no carregamento.
+- federation compartilhada de forma mínima;
+- bundle analysis;
+- preload somente com evidência.
+
+### Acessibilidade
+
+Baseline WCAG 2.2 AA quando aplicável:
+
+- navegação por teclado;
+- foco visível;
+- labels semânticos;
+- contraste;
+- feedback de erro acessível;
+- landmarks e headings coerentes.
 
 ---
 
-## 18. Resiliência
+## 21. Resiliência e observabilidade
 
-Falhas devem ser tratadas em diferentes níveis.
+### Front-end
 
-### Shell
-
-- fallback para MFE indisponível;
-- retry controlado;
-- registro do erro.
-
-### MFE
-
-- error boundaries;
-- empty states;
-- loading states;
-- tratamento de timeout;
-- mensagens de erro acionáveis.
+- Error Boundary por MFE;
+- fallback do Shell;
+- loading/empty/error states;
+- timeout e retry controlados;
+- identificação do remote que falhou.
 
 ### BFF
 
-- timeout para downstream;
-- normalização de falhas;
-- request correlation;
-- retry apenas em operações idempotentes quando seguro.
+- logs estruturados;
+- request/correlation id;
+- timeout de downstream;
+- retry apenas quando idempotente e seguro;
+- métricas de erro e latência;
+- logs no CloudWatch.
+
+Objetivo operacional: conseguir responder qual MFE iniciou a ação, qual request falhou, qual endpoint/downstream foi envolvido e quanto tempo levou.
 
 ---
 
-## 19. Observabilidade
+## 22. Testes
 
-A implementação inicial deve suportar:
-
-- logs estruturados no BFF;
-- `requestId`/correlation id;
-- logging de falha de carregamento de MFE;
-- métricas básicas de erro e latência;
-- possibilidade futura de OpenTelemetry.
-
-Logs devem permitir responder:
-
-```text
-qual request falhou?
-qual MFE originou a ação?
-qual endpoint foi chamado?
-qual downstream falhou?
-quanto tempo levou?
-```
-
----
-
-## 20. Testes
-
-A estratégia segue a pirâmide de testes sem perseguir cobertura artificial.
-
-### 20.1 Unitários
-
-Ferramentas:
+### Unitários e componentes
 
 - Jest;
-- React Testing Library.
+- React Testing Library;
+- `test` como padrão de declaração;
+- descrições iniciando com `should`;
+- queries via `screen`;
+- helpers de render reutilizáveis;
+- Faker quando randomização agregar robustez.
 
-Cobrir:
+### Integração
 
-- hooks;
-- componentes com comportamento;
-- mapeadores;
-- regras puras;
-- validações auxiliares.
-
-### 20.2 Integração frontend
-
-Usar MSW para simular APIs em cenários de:
+MSW para cenários de:
 
 - sucesso;
-- erro de validação;
-- erro de autorização;
-- indisponibilidade;
-- resposta lenta.
+- validação;
+- 401/403;
+- 500/503;
+- timeout e resposta lenta.
 
-### 20.3 BFF
+### BFF
 
-Usar `Fastify.inject()` para testar endpoints sem depender de servidor externo.
+`Fastify.inject()` para testar endpoints sem servidor externo.
 
-Validar:
+### E2E
 
-- contrato;
-- status code;
-- autenticação;
-- autorização;
-- transformação de payload;
-- normalização de erro.
+Playwright deve cobrir ao menos uma jornada cross-MFE, incluindo navegação, formulário, sucesso e falha de remote.
 
-### 20.4 E2E
+### Contratos
 
-Playwright deve validar jornadas cross-MFE.
-
-Exemplos:
-
-- autenticar e abrir dashboard;
-- navegar de Accounts para Payments;
-- preencher transferência inválida;
-- concluir fluxo fictício válido;
-- tratar indisponibilidade de um remote.
+Mudanças incompatíveis em contratos públicos devem falhar no CI ou possuir migração explícita.
 
 ---
 
-## 21. Storybook
+## 23. Storybook e UI
 
-`packages/ui` deve possuir catálogo isolado.
+`packages/ui` deve possuir Storybook isolado.
 
-Objetivos:
+A biblioteca contém primitives e componentes sem regra de domínio. Componentes específicos continuam no MFE owner mesmo quando visualmente parecidos.
 
-- documentar API dos componentes;
-- validar estados;
-- reduzir dependência de execução dos MFEs;
-- facilitar consistência visual.
-
-Componentes de domínio não devem ser movidos para `packages/ui` apenas para aumentar reutilização aparente.
+Tailwind deve possuir estratégia compartilhada de tokens/configuração sem criar dependência de domínio.
 
 ---
 
-## 22. CI
+## 24. Infraestrutura AWS
 
-GitHub Actions deve executar, no mínimo:
+AWS faz parte do escopo do case, não é apenas uma evolução opcional.
+
+### Front-end
+
+```text
+Shell/MFEs -> build estático -> S3 -> CloudFront
+```
+
+Os apps podem compartilhar infraestrutura física por prefixos/versionamento para reduzir custo, mantendo artefatos e pipelines independentes.
+
+### BFF
+
+```text
+Browser -> API Gateway -> Lambda -> Fastify BFF
+```
+
+O adapter serverless deve ficar isolado do core da aplicação para permitir execução local e testes sem Lambda.
+
+### Observabilidade
+
+CloudWatch recebe logs e métricas relevantes do backend.
+
+### Custos
+
+AWS Budgets deve definir alerta de custo baixo para evitar surpresa em uma aplicação de portfólio.
+
+---
+
+## 25. Terraform
+
+Toda infraestrutura AWS do case deve possuir definição em `infrastructure/terraform`.
+
+### Módulos previstos
+
+```text
+frontend/
+bff/
+observability/
+budget/
+```
+
+Responsabilidades previstas:
+
+- buckets/prefixos S3;
+- CloudFront;
+- Lambda;
+- API Gateway;
+- CloudWatch;
+- IAM com menor privilégio possível;
+- AWS Budget/alerta;
+- outputs necessários ao pipeline.
+
+### Segurança do Terraform
+
+- state nunca deve conter segredo versionado;
+- `.tfstate` deve ficar fora do Git;
+- quando houver backend remoto, utilizar proteção adequada;
+- CI usa credenciais temporárias via OIDC sempre que possível;
+- secrets AWS de longa duração não devem ser necessários no GitHub.
+
+### Workflow
+
+Pull Request:
+
+```text
+terraform fmt -check
+terraform validate
+terraform plan
+```
+
+Deploy:
+
+```text
+terraform apply
+```
+
+`apply` deve ser protegido/manual ou associado a environment protegido. A automação não deve aplicar mudanças destrutivas sem revisão explícita.
+
+---
+
+## 26. CI/CD
+
+### CI
+
+GitHub Actions executa:
 
 ```text
 pnpm install --frozen-lockfile
@@ -752,197 +754,203 @@ pnpm test
 pnpm build
 ```
 
-E2E pode rodar em job separado.
+E2E e Terraform podem rodar em jobs separados.
 
-PR não deve ser considerada válida se gates obrigatórios falharem.
+### CD
 
----
+Mudanças devem permitir identificar quais apps/packages foram afetados. Turborepo pode ser usado para reduzir trabalho desnecessário.
 
-## 23. CD e deploy
-
-A arquitetura deve permitir deploy independente.
-
-Modelo inicial:
+Cada app possui artefato independente:
 
 ```text
-shell              -> deployment próprio
-dashboard-mfe      -> deployment próprio
-accounts-mfe       -> deployment próprio
-payments-mfe       -> deployment próprio
-insurance-mfe      -> deployment próprio
-bff                -> deployment próprio
+shell
+dashboard-mfe
+accounts-mfe
+payments-mfe
+insurance-mfe
+bff
 ```
 
-O Shell deve descobrir os remotes por configuração de ambiente, evitando URLs hardcoded espalhadas pelo código.
-
-### Evolução AWS opcional
-
-Uma fase posterior pode demonstrar:
-
-- S3 para assets estáticos;
-- CloudFront como CDN;
-- CloudWatch para logs/métricas;
-- Lambda em um caso de uso pontual.
-
-AWS não é requisito do primeiro bootstrap da POC.
+O Shell resolve URLs dos remotes por configuração de ambiente, nunca por hardcode espalhado em código de domínio.
 
 ---
 
-## 24. Configuração por ambiente
+## 27. Configuração e ambientes
 
-Variáveis públicas e privadas devem ser claramente separadas.
-
-Exemplos conceituais:
+Ambientes iniciais:
 
 ```text
-SHELL_DASHBOARD_REMOTE_URL
-SHELL_ACCOUNTS_REMOTE_URL
-SHELL_PAYMENTS_REMOTE_URL
-SHELL_INSURANCE_REMOTE_URL
-BFF_BASE_URL
+local
+production/demo
 ```
 
-Secrets do BFF nunca devem ser expostos no bundle do navegador.
+A escolha reduz custo e mantém o case reproduzível. Um ambiente intermediário só deve ser criado se houver necessidade concreta.
+
+Variáveis públicas e privadas devem ser separadas. Secrets do BFF nunca entram no bundle do navegador.
 
 ---
 
-## 25. Versionamento de contratos
+## 28. Versionamento e compatibilidade
 
-Como todos os apps estarão inicialmente no mesmo monorepo, mudanças de contrato podem ser verificadas no mesmo pipeline.
+Contratos e módulos federados são APIs públicas.
 
-Ainda assim, contratos devem ser tratados como APIs públicas.
+Mudanças incompatíveis devem:
 
-Mudanças incompatíveis precisam:
-
-- ser identificadas;
+- ser detectadas;
 - possuir migração coordenada;
-- evitar quebra silenciosa entre deployments independentes.
+- evitar deploy que quebre consumidor ainda ativo;
+- manter compatibilidade durante a janela de rollout quando necessário.
+
+A independência de deploy só é real se produtor e consumidor não precisarem ser publicados atomicamente em toda alteração.
 
 ---
 
-## 26. Estratégia de evolução
+## 29. Documentação e ADRs
 
-### Fase 1 — Fundação
+`packages/context` é a fonte canônica.
 
-- workspace;
-- configs compartilhadas;
-- Shell;
-- primeiro MFE;
-- contracts;
-- BFF mínimo.
+Arquivos:
 
-### Fase 2 — Composição MFE
+```text
+README.md
+SDD.md
+PROJECT-TASKS.md
+adr/
+```
 
-- múltiplos MFEs;
-- rotas;
-- lifecycles;
-- error boundaries;
-- runtime config.
+ADRs serão utilizados quando uma decisão relevante tiver alternativas reais, por exemplo:
 
-### Fase 3 — Module Federation
+- Single-SPA layout vs registro manual;
+- estratégia de runtime config;
+- estratégia de remote resolution;
+- modelo de autenticação;
+- estrutura física de S3/CloudFront;
+- decisões com trade-offs relevantes de custo ou acoplamento.
 
-- remote público;
-- consumo runtime;
-- shared dependencies;
-- testes de compatibilidade.
-
-### Fase 4 — Domínio e formulários
-
-- Accounts;
-- Payments;
-- Insurance;
-- schemas Zod compartilhados;
-- validação frontend + backend.
-
-### Fase 5 — Qualidade
-
-- Jest/RTL;
-- MSW;
-- Fastify.inject;
-- Playwright;
-- Storybook.
-
-### Fase 6 — Operação
-
-- CI;
-- deployments independentes;
-- observabilidade;
-- performance;
-- documentação de trade-offs.
-
-### Fase 7 — Cloud opcional
-
-- S3;
-- CloudFront;
-- CloudWatch;
-- Lambda quando houver caso de uso real.
+O SDD descreve o estado arquitetural atual. ADR registra o histórico da decisão.
 
 ---
 
-## 27. Critérios arquiteturais de aceite
+## 30. Fluxo de tasks e commits
 
-A POC será considerada arquiteturalmente válida quando:
+Nenhuma implementação funcional começa antes do fechamento da fundação documental.
 
-1. o Shell montar ao menos dois MFEs independentes;
-2. os MFEs possuírem lifecycle funcional de mount/unmount;
-3. ao menos um módulo for consumido via Module Federation;
-4. React não for duplicado de maneira problemática entre host/remotes;
-5. cada domínio possuir ownership de rota claro;
-6. contratos Zod forem reutilizados por front e BFF;
-7. o BFF revalidar entradas recebidas;
-8. uma regra dependente de servidor existir exclusivamente no BFF/domínio;
-9. falha de um MFE possuir fallback sem derrubar todo o Shell;
-10. um fluxo E2E atravessar mais de um MFE;
-11. os principais gates rodarem no CI;
-12. existir evidência de build/deploy independente;
-13. decisões e trade-offs relevantes estarem documentados.
+Fluxo:
 
----
+```text
+BACKLOG -> READY -> DOING -> REVIEW -> DONE
+```
 
-## 28. Decisões iniciais
+Toda mudança relevante deve estar associada a uma task `FMH-XXX`.
 
-| Decisão | Escolha | Motivo |
-| --- | --- | --- |
-| Linguagem | TypeScript | contratos fortes em todo o workspace |
-| Front | React | alinhamento com o objetivo da POC |
-| Estilo | Tailwind CSS | produtividade e consistência |
-| Orquestração | Single-SPA | estudar lifecycle e composição MFE |
-| Runtime sharing | Webpack Module Federation | estudar remotes em runtime |
-| Workspace | pnpm + Turborepo | organização, cache e pipelines |
-| Contratos | Zod | validação runtime + tipos inferidos |
-| BFF | Fastify | baixo overhead e boa DX em TypeScript |
-| Server state | TanStack Query | cache e sincronização de API |
-| Estado global | Zustand quando necessário | evitar complexidade sem necessidade |
-| E2E | Playwright | jornadas cross-MFE |
+Padrão de commit:
+
+```text
+<tipo>: <TASK-ID> - <descrição em pt-BR>
+```
+
+Exemplos:
+
+```text
+feat: FMH-001 - consolida SDD e arquitetura do case
+feat: FMH-005 - cria shell com orquestração single-spa
+fix: FMH-029 - corrige reenvio da transferência
+refactor: FMH-018 - separa bootstrap do fastify
+```
+
+Mudança arquitetural implementada sem atualização de SDD/ADR correspondente não deve ser considerada concluída.
 
 ---
 
-## 29. Questões abertas
+## 31. Critérios arquiteturais de aceite
 
-As seguintes decisões devem ser resolvidas durante as primeiras tasks:
+O case será considerado arquiteturalmente completo quando:
 
-1. usar `single-spa-layout` ou registro manual no Shell;
-2. estratégia exata de integração Single-SPA + Module Federation;
-3. mecanismo de runtime config dos remotes;
-4. biblioteca de formulário: React Hook Form ou Formik;
-5. estratégia de autenticação da POC;
-6. onde publicar cada remote na primeira versão;
-7. se o BFF usará persistência local, memória ou banco em fase posterior;
-8. qual caso concreto justificará o primeiro módulo federado.
-
-As respostas devem ser registradas no SDD antes ou junto da implementação correspondente.
+1. Shell montar múltiplos MFEs independentes;
+2. lifecycles Single-SPA funcionarem corretamente;
+3. pelo menos um módulo real for consumido via Module Federation;
+4. React não for duplicado de forma problemática;
+5. MFEs possuírem ownership de domínio e rota claros;
+6. contratos Zod forem reutilizados no front e BFF;
+7. formulário reutilizar contrato sem duplicação manual de regras;
+8. BFF revalidar toda entrada não confiável;
+9. regra dependente de servidor existir apenas no BFF/domínio;
+10. PT-BR e inglês funcionarem em todos os MFEs previstos;
+11. falha de um remote não derrubar o Shell;
+12. ao menos uma jornada Playwright atravessar MFEs;
+13. Core Web Vitals e bundles possuírem medição documentada;
+14. CI executar gates obrigatórios;
+15. apps possuírem builds e deploys independentes;
+16. Shell resolver remotes em runtime por ambiente;
+17. infraestrutura AWS estiver descrita por Terraform;
+18. Terraform `plan` fizer parte do fluxo de revisão;
+19. S3 + CloudFront publicarem Shell/MFEs;
+20. BFF estiver integrado a Lambda + API Gateway;
+21. logs backend estiverem disponíveis no CloudWatch;
+22. existir budget/alerta básico de custo;
+23. trade-offs relevantes estiverem registrados;
+24. README PT-BR e README em inglês refletirem o estado final.
 
 ---
 
-## 30. Regra final
+## 32. Decisões consolidadas
 
-Nenhuma tecnologia deve entrar apenas para aparecer no README.
+| Tema | Decisão |
+| --- | --- |
+| Idioma padrão | PT-BR |
+| Idioma alternativo | inglês (`en`) |
+| Front | React + TypeScript |
+| Estilo | Tailwind CSS |
+| Orquestração | Single-SPA |
+| Runtime sharing | Webpack 5 Module Federation |
+| Workspace | pnpm + Turborepo |
+| Contratos | Zod |
+| Formulários | React Hook Form + Zod |
+| BFF | Fastify + Node.js |
+| Server state | TanStack Query |
+| Estado client-side | Zustand apenas quando necessário |
+| i18n | i18next + react-i18next |
+| Unit/component tests | Jest + RTL |
+| API mocks | MSW |
+| E2E | Playwright |
+| Catálogo UI | Storybook |
+| Front hosting | S3 + CloudFront |
+| BFF hosting | Lambda + API Gateway |
+| Logs | CloudWatch |
+| IaC | Terraform |
+| CI/CD | GitHub Actions |
+| Controle de custo | AWS Budgets |
+| Documentação | `packages/context` + ADRs |
 
-Toda adição relevante precisa responder pelo menos uma destas perguntas:
+---
+
+## 33. Questões que permanecem deliberadamente abertas
+
+Estas decisões exigem evidência durante a implementação e devem gerar task/ADR antes do código correspondente:
+
+1. `single-spa-layout` vs registro manual;
+2. implementação exata da integração Single-SPA + Module Federation;
+3. formato final da runtime config dos remotes;
+4. primeiro módulo federado com caso de uso real;
+5. estratégia final de sessão/autenticação;
+6. estrutura física de S3: buckets separados ou compartilhados por prefixo;
+7. necessidade de persistência permanente além de fixtures/serviços fictícios;
+8. necessidade de backend remoto para Terraform state no escopo individual.
+
+Questão aberta não autoriza implementação improvisada: deve ser resolvida na task responsável antes ou junto da alteração.
+
+---
+
+## 34. Regra final
+
+Este case deve demonstrar arquitetura, não quantidade de ferramentas.
+
+Toda tecnologia ou abstração precisa responder pelo menos uma destas perguntas:
 
 - qual problema resolve?
 - qual fronteira melhora?
 - qual risco reduz?
-- qual conceito arquitetural demonstra?
+- qual capacidade arquitetural demonstra?
+- qual evidência conseguiremos apresentar?
 
-Se não houver uma resposta clara, a tecnologia não entra na POC.
+Se a resposta não for clara, a tecnologia não entra.

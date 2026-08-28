@@ -18,7 +18,7 @@ O case deve demonstrar, de forma prática e verificável:
 2. compartilhamento controlado de módulos em runtime com **Webpack Module Federation**;
 3. monorepo com **pnpm + Turborepo**;
 4. contratos runtime com **Zod** reutilizados entre front-end, BFF e testes;
-5. formulários com **React Hook Form + Zod** sem duplicação manual de regras portáveis;
+5. formulários com **Formik + Zod**, preservando Context API e sem duplicação manual de regras portáveis;
 6. BFF em **Node.js + Fastify**;
 7. internacionalização com **PT-BR como idioma padrão** e **inglês** como alternativa;
 8. separação entre estado de servidor, estado local e comunicação cross-MFE;
@@ -27,16 +27,16 @@ O case deve demonstrar, de forma prática e verificável:
 11. medição de performance e Core Web Vitals;
 12. observabilidade com logs estruturados e correlation id;
 13. CI/CD reproduzível com **GitHub Actions**;
-14. infraestrutura AWS declarada com **Terraform**;
+14. infraestrutura principal no **Render**, descrita por **Terraform**;
 15. deploy independente por aplicação;
-16. controle básico de custo da infraestrutura;
-17. documentação de decisões, trade-offs e evolução por tasks.
+16. documentação de decisões, trade-offs e evolução por tasks;
+17. uma trilha opcional de comparação com AWS, sem ser dependência do funcionamento do case.
 
 ---
 
 ## 3. Não objetivos
 
-Não fazem parte do case:
+Não fazem parte do case principal:
 
 - integração com instituições financeiras reais;
 - movimentação financeira real;
@@ -46,6 +46,7 @@ Não fazem parte do case:
 - arquitetura multi-região;
 - alta disponibilidade de produção real;
 - event streaming distribuído sem necessidade concreta;
+- obrigatoriedade de AWS para execução da aplicação;
 - adoção de tecnologia apenas para aumentar a lista de stack.
 
 Toda complexidade precisa ter justificativa arquitetural explícita.
@@ -78,9 +79,17 @@ Estar no mesmo monorepo não implica deploy conjunto. Cada aplicação deve poss
 
 A falha de um remote não deve derrubar o Shell nem outros domínios quando tecnicamente evitável.
 
-### 4.7 Observabilidade e segurança por padrão
+### 4.7 Contexto local antes de estado global
+
+Context API é preferida quando o estado pertence a um fluxo ou domínio React específico. Estado global cross-MFE deve ser evitado quando URL, BFF, eventos ou contratos públicos resolverem o problema com menos acoplamento.
+
+### 4.8 Observabilidade e segurança por padrão
 
 Logs, correlation id, validação runtime, secrets fora do Git e tratamento de erro fazem parte do desenho, não de uma etapa final.
+
+### 4.9 Infraestrutura fiel ao ambiente real
+
+O SDD deve descrever primeiro o ambiente que realmente será executado. AWS pode existir como laboratório opcional, mas não deve ser apresentada como infraestrutura principal se o case roda em Render.
 
 ---
 
@@ -88,9 +97,8 @@ Logs, correlation id, validação runtime, secrets fora do Git e tratamento de e
 
 ```mermaid
 flowchart LR
-  User["Usuário"] --> CDN["CloudFront"]
-  CDN --> Static["S3\nShell + MFEs"]
-  Static --> Shell["Shell / Root Config\nSingle-SPA"]
+  User["Usuário"] --> RenderStatic["Render Static Sites\nShell + MFEs"]
+  RenderStatic --> Shell["Shell / Root Config\nSingle-SPA"]
 
   Shell --> Dashboard["Dashboard MFE"]
   Shell --> Accounts["Accounts MFE"]
@@ -102,14 +110,13 @@ flowchart LR
   Payments -. "Module Federation" .-> Shared
   Insurance -. "Module Federation" .-> Shared
 
-  Dashboard --> API["API Gateway"]
-  Accounts --> API
-  Payments --> API
-  Insurance --> API
+  Dashboard --> BFF["Render Web Service\nFastify BFF"]
+  Accounts --> BFF
+  Payments --> BFF
+  Insurance --> BFF
 
-  API --> BFF["Fastify BFF\nAWS Lambda"]
   BFF --> Services["Serviços financeiros fictícios"]
-  BFF --> Logs["CloudWatch"]
+  BFF --> Logs["Logs / métricas Render"]
 
   Contracts["packages/contracts\nZod"] --> Dashboard
   Contracts --> Accounts
@@ -123,11 +130,8 @@ flowchart LR
   I18n --> Payments
   I18n --> Insurance
 
-  Terraform["Terraform"] -. "provisiona" .-> CDN
-  Terraform -. "provisiona" .-> Static
-  Terraform -. "provisiona" .-> API
+  Terraform["Terraform\nrender-oss/render"] -. "provisiona" .-> RenderStatic
   Terraform -. "provisiona" .-> BFF
-  Terraform -. "provisiona" .-> Logs
 ```
 
 ---
@@ -144,8 +148,9 @@ flowchart LR
 - Webpack 5;
 - Module Federation;
 - TanStack Query;
-- Zustand somente quando existir estado client-side realmente global;
-- React Hook Form;
+- Context API para estado de fluxo/domínio quando adequado;
+- Zustand somente quando existir estado client-side realmente global dentro de um owner claro;
+- Formik;
 - Zod;
 - i18next + react-i18next.
 
@@ -170,18 +175,24 @@ flowchart LR
 - ESLint;
 - Prettier.
 
-### Plataforma
+### Plataforma principal
 
 - pnpm workspaces;
 - Turborepo;
 - GitHub Actions;
+- Render Static Sites;
+- Render Web Service;
+- Terraform com provider `render-oss/render`.
+
+### Trilha opcional de cloud
+
 - AWS S3;
 - AWS CloudFront;
 - AWS Lambda;
 - Amazon API Gateway;
-- Amazon CloudWatch;
-- AWS Budgets;
-- Terraform.
+- Amazon CloudWatch.
+
+A trilha AWS é comparativa/educacional e não bloqueia a entrega principal.
 
 ---
 
@@ -212,10 +223,9 @@ packages/
 infrastructure/
 └── terraform/
     ├── modules/
-    │   ├── frontend/
-    │   ├── bff/
-    │   ├── observability/
-    │   └── budget/
+    │   ├── static-site/
+    │   ├── web-service/
+    │   └── shared/
     └── environments/
         └── production/
 ```
@@ -237,6 +247,7 @@ Responsável por:
 - fallback de remote;
 - runtime config;
 - coordenação de idioma;
+- providers globais estritamente necessários;
 - carregamento de dependências compartilhadas quando necessário.
 
 Não contém regras de Accounts, Payments ou Insurance.
@@ -330,9 +341,9 @@ Webpack Module Federation será usado para compartilhamento runtime controlado.
 
 ### Cache de remotes
 
-`remoteEntry.js` deve possuir cache curto ou revalidação apropriada. Chunks com hash podem usar cache longo e `immutable`.
+`remoteEntry.js` deve possuir política de cache/revalidação compatível com o comportamento do hosting. Chunks com hash podem usar cache mais agressivo.
 
-Isso reduz risco de Shell apontar para metadata antiga com chunks já substituídos.
+O objetivo é evitar que o Shell consuma metadata antiga apontando para chunks que já não correspondem à versão publicada.
 
 ---
 
@@ -398,26 +409,52 @@ Modelos de persistência não devem ser expostos diretamente como contratos HTTP
 
 ---
 
-## 13. Formulários
+## 13. Formulários e Context API
 
-React Hook Form será a biblioteca padrão de formulário.
+Formik será a biblioteca padrão de formulário.
 
-Integração:
+Integração conceitual:
 
 ```text
-React Hook Form
-      │
- zodResolver
-      │
-packages/contracts
-      │
-      ├── validação imediata no front
-      └── revalidação autoritativa no BFF
+Formik / FormikProvider
+        │
+        ├── estado do formulário
+        ├── touched / errors / submit
+        └── useFormikContext
+                 │
+                 ▼
+       adapter Zod -> Formik errors
+                 │
+                 ▼
+       packages/contracts
+                 │
+          ┌──────┴──────┐
+          ▼             ▼
+       Front UX       Fastify BFF
+                     revalidação
 ```
 
-O front não deve duplicar manualmente regras já existentes no schema.
+### Regras
 
-Erros de domínio devem usar códigos estáveis, sem parsing de mensagens humanas.
+- Zod continua sendo a fonte canônica das regras portáveis;
+- Formik controla o estado e lifecycle do formulário;
+- um adapter converte `ZodError` para o shape esperado pelo Formik;
+- não duplicar validações em funções paralelas ao schema;
+- `FormikProvider` e `useFormikContext` podem ser usados para fluxos compostos dentro do mesmo MFE;
+- Context API é local ao owner do domínio, salvo provider global explicitamente justificado;
+- erros de domínio usam códigos estáveis, sem parsing de mensagens humanas.
+
+### Context API entre MFEs
+
+Não compartilhar um grande Context global contendo estado de Accounts, Payments e Insurance.
+
+Preferir:
+
+1. Context local ao MFE;
+2. URL;
+3. BFF/server state;
+4. eventos públicos tipados;
+5. Module Federation apenas quando houver contrato explícito.
 
 ---
 
@@ -478,9 +515,13 @@ O sistema deve ter fallback explícito para `pt-BR`.
 
 TanStack Query para fetching, cache, invalidação e retry controlado.
 
-### Estado client-side
+### Estado client-side local
 
-Zustand apenas quando necessário e preferencialmente limitado ao owner do domínio.
+Ordem de preferência:
+
+1. estado local de componente;
+2. Context API para fluxos/domínios React compostos;
+3. Zustand apenas quando houver estado client-side global real dentro de um owner claro.
 
 ### Cross-MFE
 
@@ -492,7 +533,7 @@ Ordem de preferência:
 4. eventos tipados;
 5. módulo federado somente quando houver justificativa.
 
-Evitar store global compartilhada entre todos os MFEs.
+Evitar store ou Context global compartilhado entre todos os MFEs.
 
 ---
 
@@ -546,7 +587,7 @@ Baseline mínimo:
 - validação runtime de request e configuração;
 - rate limit em endpoints sensíveis quando aplicável;
 - secrets fora do Git;
-- least privilege em IAM;
+- princípio de menor privilégio nas credenciais de infraestrutura;
 - redaction de logs;
 - nenhuma informação financeira real;
 - dependabot ou mecanismo equivalente para dependências;
@@ -570,7 +611,7 @@ Baseline mínimo:
 
 - lazy loading por domínio;
 - assets com hash;
-- cache adequado no CloudFront;
+- política de cache adequada ao hosting;
 - evitar duplicação de React;
 - federation compartilhada de forma mínima;
 - bundle analysis;
@@ -606,7 +647,7 @@ Baseline WCAG 2.2 AA quando aplicável:
 - timeout de downstream;
 - retry apenas quando idempotente e seguro;
 - métricas de erro e latência;
-- logs no CloudWatch.
+- integração com logs e métricas disponíveis no Render.
 
 Objetivo operacional: conseguir responder qual MFE iniciou a ação, qual request falhou, qual endpoint/downstream foi envolvido e quanto tempo levou.
 
@@ -658,67 +699,93 @@ Tailwind deve possuir estratégia compartilhada de tokens/configuração sem cri
 
 ---
 
-## 24. Infraestrutura AWS
+## 24. Infraestrutura principal — Render
 
-AWS faz parte do escopo do case, não é apenas uma evolução opcional.
+Render é a infraestrutura oficial de execução do case.
 
 ### Front-end
 
+Cada aplicação front-end deve possuir build e deploy independentes como Static Site:
+
 ```text
-Shell/MFEs -> build estático -> S3 -> CloudFront
+shell              -> Render Static Site
+dashboard-mfe      -> Render Static Site
+accounts-mfe       -> Render Static Site
+payments-mfe       -> Render Static Site
+insurance-mfe      -> Render Static Site
 ```
 
-Os apps podem compartilhar infraestrutura física por prefixos/versionamento para reduzir custo, mantendo artefatos e pipelines independentes.
+O Shell resolve as URLs dos remotes por configuração de ambiente.
 
 ### BFF
 
 ```text
-Browser -> API Gateway -> Lambda -> Fastify BFF
+Browser / MFEs -> Render Web Service -> Fastify BFF
 ```
 
-O adapter serverless deve ficar isolado do core da aplicação para permitir execução local e testes sem Lambda.
+O BFF deve escutar na interface/porta esperadas pelo ambiente e manter health check explícito.
+
+### Limitações aceitas no ambiente gratuito
+
+O case pode conviver com cold start/suspensão do Web Service gratuito. Isso deve ser tratado na UX e documentado no README, sem mascarar a limitação.
 
 ### Observabilidade
 
-CloudWatch recebe logs e métricas relevantes do backend.
-
-### Custos
-
-AWS Budgets deve definir alerta de custo baixo para evitar surpresa em uma aplicação de portfólio.
+Logs, health check e métricas disponíveis na plataforma devem ser utilizados como primeira camada operacional. Instrumentações adicionais só entram se resolverem uma necessidade concreta.
 
 ---
 
-## 25. Terraform
+## 25. Terraform + Render
 
-Toda infraestrutura AWS do case deve possuir definição em `infrastructure/terraform`.
+Terraform é o IaC oficial do case e deve refletir a infraestrutura realmente utilizada.
 
-### Módulos previstos
+Provider principal:
 
 ```text
-frontend/
-bff/
-observability/
-budget/
+render-oss/render
 ```
 
-Responsabilidades previstas:
+### Recursos esperados
 
-- buckets/prefixos S3;
-- CloudFront;
-- Lambda;
-- API Gateway;
-- CloudWatch;
-- IAM com menor privilégio possível;
-- AWS Budget/alerta;
-- outputs necessários ao pipeline.
+- Static Site do Shell;
+- Static Site de cada MFE;
+- Web Service do BFF;
+- env vars não sensíveis quando apropriado;
+- referências a secrets via mecanismo seguro;
+- custom domains somente se realmente utilizados;
+- outputs com URLs/identificadores necessários para CI/CD e runtime config.
+
+### Estrutura
+
+```text
+infrastructure/terraform/
+├── modules/
+│   ├── static-site/
+│   ├── web-service/
+│   └── shared/
+└── environments/
+    └── production/
+```
+
+### Terraform vs Render Blueprint
+
+Render possui seu próprio modelo de IaC por Blueprint, mas o case escolhe Terraform deliberadamente para:
+
+- manter uma prática IaC reutilizável fora de um único fornecedor;
+- exercitar `init`, `validate`, `plan`, state e import;
+- demonstrar drift e revisão de infraestrutura;
+- manter coerência com o objetivo educacional do projeto.
+
+Blueprint pode ser citado como alternativa e trade-off, mas não será a fonte canônica da infraestrutura.
 
 ### Segurança do Terraform
 
-- state nunca deve conter segredo versionado;
-- `.tfstate` deve ficar fora do Git;
-- quando houver backend remoto, utilizar proteção adequada;
-- CI usa credenciais temporárias via OIDC sempre que possível;
-- secrets AWS de longa duração não devem ser necessários no GitHub.
+- `.tfstate` nunca é versionado;
+- API key do Render nunca entra no Git;
+- `RENDER_API_KEY` e `RENDER_OWNER_ID` são fornecidos por ambiente/CI;
+- state remoto só entra se houver necessidade concreta;
+- import deve ser usado quando um recurso já existir antes do Terraform;
+- mudanças destrutivas exigem revisão explícita.
 
 ### Workflow
 
@@ -736,7 +803,7 @@ Deploy:
 terraform apply
 ```
 
-`apply` deve ser protegido/manual ou associado a environment protegido. A automação não deve aplicar mudanças destrutivas sem revisão explícita.
+`apply` deve ser protegido/manual ou associado a environment protegido.
 
 ---
 
@@ -760,7 +827,7 @@ E2E e Terraform podem rodar em jobs separados.
 
 Mudanças devem permitir identificar quais apps/packages foram afetados. Turborepo pode ser usado para reduzir trabalho desnecessário.
 
-Cada app possui artefato independente:
+Cada app possui artefato e serviço independentes:
 
 ```text
 shell
@@ -772,6 +839,8 @@ bff
 ```
 
 O Shell resolve URLs dos remotes por configuração de ambiente, nunca por hardcode espalhado em código de domínio.
+
+O fluxo de deploy deve evitar acoplamento obrigatório entre todos os MFEs. Publicar Payments não deve exigir republicar Accounts, por exemplo.
 
 ---
 
@@ -786,7 +855,7 @@ production/demo
 
 A escolha reduz custo e mantém o case reproduzível. Um ambiente intermediário só deve ser criado se houver necessidade concreta.
 
-Variáveis públicas e privadas devem ser separadas. Secrets do BFF nunca entram no bundle do navegador.
+Variáveis públicas e privadas devem ser separadas. Secrets do BFF e do Terraform nunca entram no bundle do navegador.
 
 ---
 
@@ -824,7 +893,8 @@ ADRs serão utilizados quando uma decisão relevante tiver alternativas reais, p
 - estratégia de runtime config;
 - estratégia de remote resolution;
 - modelo de autenticação;
-- estrutura física de S3/CloudFront;
+- Terraform vs Blueprint;
+- estado local/Context vs store global;
 - decisões com trade-offs relevantes de custo ou acoplamento.
 
 O SDD descreve o estado arquitetural atual. ADR registra o histórico da decisão.
@@ -872,24 +942,26 @@ O case será considerado arquiteturalmente completo quando:
 4. React não for duplicado de forma problemática;
 5. MFEs possuírem ownership de domínio e rota claros;
 6. contratos Zod forem reutilizados no front e BFF;
-7. formulário reutilizar contrato sem duplicação manual de regras;
-8. BFF revalidar toda entrada não confiável;
-9. regra dependente de servidor existir apenas no BFF/domínio;
-10. PT-BR e inglês funcionarem em todos os MFEs previstos;
-11. falha de um remote não derrubar o Shell;
-12. ao menos uma jornada Playwright atravessar MFEs;
-13. Core Web Vitals e bundles possuírem medição documentada;
-14. CI executar gates obrigatórios;
-15. apps possuírem builds e deploys independentes;
-16. Shell resolver remotes em runtime por ambiente;
-17. infraestrutura AWS estiver descrita por Terraform;
-18. Terraform `plan` fizer parte do fluxo de revisão;
-19. S3 + CloudFront publicarem Shell/MFEs;
-20. BFF estiver integrado a Lambda + API Gateway;
-21. logs backend estiverem disponíveis no CloudWatch;
-22. existir budget/alerta básico de custo;
+7. formulário Formik reutilizar contrato Zod sem duplicação manual de regras;
+8. Context API for usada dentro de owners claros, sem MegaContext cross-MFE;
+9. BFF revalidar toda entrada não confiável;
+10. regra dependente de servidor existir apenas no BFF/domínio;
+11. PT-BR e inglês funcionarem em todos os MFEs previstos;
+12. falha de um remote não derrubar o Shell;
+13. ao menos uma jornada Playwright atravessar MFEs;
+14. Core Web Vitals e bundles possuírem medição documentada;
+15. CI executar gates obrigatórios;
+16. apps possuírem builds e deploys independentes;
+17. Shell resolver remotes em runtime por ambiente;
+18. Shell e MFEs estiverem publicados como serviços independentes no Render;
+19. BFF estiver publicado como Web Service no Render;
+20. infraestrutura Render estiver descrita por Terraform;
+21. Terraform `plan` fizer parte do fluxo de revisão;
+22. logs e health checks estiverem disponíveis para o BFF;
 23. trade-offs relevantes estiverem registrados;
 24. README PT-BR e README em inglês refletirem o estado final.
+
+AWS não é critério de conclusão do case principal.
 
 ---
 
@@ -905,21 +977,22 @@ O case será considerado arquiteturalmente completo quando:
 | Runtime sharing | Webpack 5 Module Federation |
 | Workspace | pnpm + Turborepo |
 | Contratos | Zod |
-| Formulários | React Hook Form + Zod |
+| Formulários | Formik + Zod |
+| Estado de formulário | Formik Context / `useFormikContext` |
+| Context API | preferida para estado de fluxo/domínio local |
 | BFF | Fastify + Node.js |
 | Server state | TanStack Query |
-| Estado client-side | Zustand apenas quando necessário |
+| Estado client-side global | Zustand apenas quando necessário |
 | i18n | i18next + react-i18next |
 | Unit/component tests | Jest + RTL |
 | API mocks | MSW |
 | E2E | Playwright |
 | Catálogo UI | Storybook |
-| Front hosting | S3 + CloudFront |
-| BFF hosting | Lambda + API Gateway |
-| Logs | CloudWatch |
-| IaC | Terraform |
+| Front hosting | Render Static Sites |
+| BFF hosting | Render Web Service |
+| IaC | Terraform + `render-oss/render` |
 | CI/CD | GitHub Actions |
-| Controle de custo | AWS Budgets |
+| Cloud opcional | AWS como case comparativo |
 | Documentação | `packages/context` + ADRs |
 
 ---
@@ -933,15 +1006,41 @@ Estas decisões exigem evidência durante a implementação e devem gerar task/A
 3. formato final da runtime config dos remotes;
 4. primeiro módulo federado com caso de uso real;
 5. estratégia final de sessão/autenticação;
-6. estrutura física de S3: buckets separados ou compartilhados por prefixo;
-7. necessidade de persistência permanente além de fixtures/serviços fictícios;
-8. necessidade de backend remoto para Terraform state no escopo individual.
+6. necessidade de persistência permanente além de fixtures/serviços fictícios;
+7. necessidade de backend remoto para Terraform state no escopo individual;
+8. estratégia exata de auto-deploy do Render vs deploy controlado pelo GitHub Actions;
+9. política final de cache para `remoteEntry` e chunks no ambiente publicado.
 
 Questão aberta não autoriza implementação improvisada: deve ser resolvida na task responsável antes ou junto da alteração.
 
 ---
 
-## 34. Regra final
+## 34. Case opcional — Terraform + AWS
+
+Após o case principal estar completo e funcional em Render, poderá existir uma trilha opcional para reproduzir partes da arquitetura em AWS.
+
+Possibilidades:
+
+```text
+Static Sites -> S3 + CloudFront
+Fastify BFF  -> Lambda + API Gateway
+Logs         -> CloudWatch
+IaC          -> Terraform AWS Provider
+```
+
+Objetivo dessa trilha:
+
+- comparar PaaS vs cloud primitives;
+- discutir custo operacional;
+- comparar simplicidade de deploy;
+- exercitar Terraform com outro provider;
+- demonstrar portabilidade arquitetural.
+
+Essa trilha não deve contaminar o desenho principal nem ser apresentada como infraestrutura utilizada pelo case se não estiver realmente implantada.
+
+---
+
+## 35. Regra final
 
 Este case deve demonstrar arquitetura, não quantidade de ferramentas.
 

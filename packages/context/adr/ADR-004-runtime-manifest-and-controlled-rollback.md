@@ -9,39 +9,37 @@ O Financial MFE Hub precisa provar que os Micro Frontends possuem release identi
 
 Hardcode de `remoteEntry.js` dentro do bundle do Shell obrigaria uma nova publicação do Shell sempre que uma URL de remote mudasse e reduziria o valor do deploy independente.
 
-Também é necessário distinguir dois comportamentos operacionais diferentes:
+Também é necessário distinguir três estados operacionais:
 
-1. indisponibilidade momentânea de um remote;
-2. rollback deliberado para uma release anterior conhecida.
+1. release ativa configurada;
+2. release estável conhecida para rollback;
+3. indisponibilidade de uma release.
 
 ## Decisão
 
 O Shell resolve os remotes através de um **runtime manifest** carregado antes do bootstrap do Single-SPA.
 
-Estrutura conceitual:
+O schema v2 separa a release `active` da última `stable` conhecida:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "environment": "production",
   "remotes": {
     "payments": {
       "scope": "payments",
-      "version": "1.4.0",
-      "remoteEntry": "https://payments.example/remoteEntry.js"
+      "active": {
+        "version": "1.4.0",
+        "remoteEntry": "https://payments.example/releases/1.4.0/remoteEntry.js"
+      },
+      "stable": {
+        "version": "1.3.2",
+        "remoteEntry": "https://payments.example/releases/1.3.2/remoteEntry.js"
+      }
     }
   }
 }
 ```
-
-O manifest possui, no mínimo:
-
-- nome lógico do remote;
-- scope do Module Federation;
-- versão/release ativa;
-- URL do `remoteEntry.js`;
-- ambiente;
-- versão do schema do próprio manifest.
 
 O Shell valida o manifest antes de iniciar a orquestração.
 
@@ -57,6 +55,8 @@ Shell bootstrap
 carrega remote-manifest.json
   ↓
 valida schema
+  ↓
+seleciona active por padrão
   ↓
 inicia Single-SPA
   ↓
@@ -75,38 +75,58 @@ React, React DOM e demais dependências compartilhadas continuam sujeitos à est
 
 ## Fallback de indisponibilidade
 
-Se um remote não puder ser carregado:
+Se a release selecionada não puder ser carregada:
 
 - o Shell permanece operacional;
 - os demais MFEs continuam navegáveis;
 - a área do remote exibe fallback explícito;
-- versão e URL esperadas ficam disponíveis para diagnóstico;
+- versão, canal e URL esperados ficam disponíveis para diagnóstico;
 - o usuário pode tentar novamente;
+- quando existe `stable`, o fallback oferece uma ação explícita de rollback;
 - o erro técnico é registrado no console/log correspondente.
 
-O fallback não escolhe silenciosamente outra versão.
+O fallback **não troca silenciosamente** de versão.
 
-## Rollback
+## Rollback controlado
 
-Rollback é uma operação **controlada**, não uma cascata automática de tentativas.
-
-Exemplo:
+Rollback é uma decisão explícita:
 
 ```text
-payments 1.4.0 ❌
-      ↓
-manifest/release config
-      ↓
-payments 1.3.2 ✅
+payments active v1.4.0 ❌
+        ↓
+fallback informa a falha
+        ↓
+operador escolhe rollback
+        ↓
+payments stable v1.3.2 ✅
 ```
 
-O objetivo é permitir que somente Payments retorne para uma release conhecida sem republicar Dashboard, Accounts, Insurance ou, quando a infraestrutura final permitir, o próprio Shell.
+A rota pública continua a mesma (`/payments`). Somente o artefato remoto selecionado muda.
 
-A forma operacional de promoção do manifest em Render será definida junto das tasks de CD/runtime config.
+No ambiente local, o Shell usa um override de sessão após o clique de rollback para demonstrar a troca sem alterar o arquivo de configuração em disco. Em produção, a promoção ou rollback deve atualizar a configuração/release publicada de forma rastreável pelo pipeline.
+
+O override local é deliberadamente temporário e existe apenas para tornar o comportamento observável durante o Architecture Gate.
+
+## Demonstração local inicial
+
+Payments possui uma release estável simulada para exercitar o fluxo:
+
+```text
+active  v0.0.1 → localhost:4203
+stable  v0.0.0 → localhost:4213
+```
+
+A release stable é iniciada separadamente com:
+
+```bash
+pnpm --filter @financial-mfe/payments dev:stable
+```
+
+Essa release usa o mesmo código-base para validar a mecânica de seleção, isolamento e rollback. No deploy real, `active` e `stable` serão artefatos imutáveis de releases distintas.
 
 ## Não decisão
 
-Não implementar neste momento:
+Não implementar:
 
 ```text
 v1.4 falha
@@ -120,17 +140,19 @@ Esse comportamento pode esconder falhas, tornar o runtime imprevisível e reduzi
 ## Consequências positivas
 
 - remove URLs de remote do código de domínio do Shell;
-- torna versão ativa observável;
+- torna release ativa e stable observáveis;
 - prepara deploy e rollback independentes;
 - facilita ambientes local/demo/produção;
 - facilita smoke tests por release;
-- mantém falhas isoladas.
+- mantém falhas isoladas;
+- permite demonstrar rollback sem alterar a rota pública.
 
 ## Trade-offs
 
 - o manifest passa a ser parte crítica do bootstrap;
 - configuração inválida pode impedir o início da composição dos MFEs;
 - cache do manifest e de `remoteEntry.js` precisa ser tratado explicitamente no deploy;
-- promoção/rollback do manifest exige processo operacional rastreável.
+- promoção/rollback do manifest exige processo operacional rastreável;
+- o demo local não substitui a validação futura com artefatos imutáveis realmente publicados.
 
 Esses trade-offs são aceitos porque o runtime manifest reduz acoplamento entre Shell e releases dos MFEs e cria uma fronteira operacional explícita para deploy independente.

@@ -1,5 +1,3 @@
-import 'react';
-import 'react-dom/client';
 import {
   addErrorHandler,
   navigateToUrl,
@@ -65,14 +63,51 @@ function handleShellNavigation(event: MouseEvent) {
   navigateToUrl(destination.href);
 }
 
-document.addEventListener('click', handleShellNavigation);
+function syncShellNavigation() {
+  const currentMfe = window.location.pathname.split('/')[1] || 'dashboard';
+  const currentRoute = document.querySelector<HTMLElement>('[data-current-route]');
 
-addErrorHandler((error) => {
+  if (currentRoute) {
+    currentRoute.textContent = window.location.pathname;
+  }
+
+  for (const anchor of document.querySelectorAll<HTMLAnchorElement>('[data-mfe-nav]')) {
+    const isActive = anchor.dataset.mfeNav === currentMfe;
+
+    if (isActive) {
+      anchor.setAttribute('aria-current', 'page');
+    } else {
+      anchor.removeAttribute('aria-current');
+    }
+  }
+}
+
+function renderRemoteFailure(error: unknown) {
+  const root = document.getElementById('mfe-root');
+  const currentMfe = window.location.pathname.split('/')[1] || 'unknown';
+
   console.error('[shell] single-spa error', error);
-});
+
+  if (!root) {
+    return;
+  }
+
+  root.innerHTML = `
+    <section class="shell-runtime-error" role="alert">
+      <strong>${currentMfe} remote unavailable</strong>
+      <span>O Shell permaneceu online. Consulte o console e o remote correspondente para o diagnóstico.</span>
+    </section>
+  `;
+}
+
+document.addEventListener('click', handleShellNavigation);
+window.addEventListener('single-spa:routing-event', syncShellNavigation);
+
+addErrorHandler(renderRemoteFailure);
 
 if (window.location.pathname === '/') {
   window.history.replaceState(null, '', '/dashboard');
 }
 
+syncShellNavigation();
 start({ urlRerouteOnly: true });

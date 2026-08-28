@@ -48,6 +48,8 @@ export function RootComponent() {
     <section
       data-mfe="payments"
       style={{
+        position: 'relative',
+        overflow: 'hidden',
         minHeight: '440px',
         borderRadius: '22px',
         padding: 'clamp(24px, 4vw, 44px)',
@@ -56,6 +58,31 @@ export function RootComponent() {
         boxShadow: '0 24px 80px rgba(124, 58, 237, 0.22)',
       }}
     >
+      <div
+        data-release-status="active"
+        data-release-version={__FMH_VERSION__}
+        style={{
+          position: 'absolute',
+          top: '18px',
+          right: '18px',
+          zIndex: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 11px',
+          borderRadius: '999px',
+          border: '1px solid rgba(221,214,254,.45)',
+          background: 'rgba(46,16,101,.72)',
+          boxShadow: '0 10px 30px rgba(46,16,101,.28)',
+          backdropFilter: 'blur(10px)',
+          fontSize: '11px',
+        }}
+      >
+        <span style={{ width: '7px', height: '7px', borderRadius: '999px', background: '#4ade80', boxShadow: '0 0 12px rgba(74,222,128,.8)' }} />
+        <strong style={{ color: '#faf5ff' }}>LIVE · v{__FMH_VERSION__}</strong>
+        <span style={{ color: '#c4b5fd' }}>{__FMH_ENV__}</span>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
         <div>
           <small style={{ letterSpacing: '0.16em', color: '#ddd6fe', fontWeight: 800 }}>
@@ -67,7 +94,7 @@ export function RootComponent() {
           <p style={{ maxWidth: '720px', color: '#ede9fe', lineHeight: 1.65 }}>{content.description}</p>
         </div>
 
-        <dl style={{ margin: 0, minWidth: '220px', display: 'grid', gridTemplateColumns: '90px 1fr', gap: '6px 12px', fontSize: '12px' }}>
+        <dl style={{ margin: '52px 0 0', minWidth: '220px', display: 'grid', gridTemplateColumns: '90px 1fr', gap: '6px 12px', fontSize: '12px' }}>
           <dt style={{ color: '#c4b5fd' }}>application</dt><dd style={{ margin: 0 }}>{__FMH_APP_NAME__}</dd>
           <dt style={{ color: '#c4b5fd' }}>version</dt><dd style={{ margin: 0 }}>{__FMH_VERSION__}</dd>
           <dt style={{ color: '#c4b5fd' }}>environment</dt><dd style={{ margin: 0 }}>{__FMH_ENV__}</dd>

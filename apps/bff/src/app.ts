@@ -1,16 +1,17 @@
 import Fastify from 'fastify';
+import { loadConfig, type AppConfig } from './config.js';
 
-export function buildApp() {
+export function buildApp(config: AppConfig = loadConfig()) {
   const app = Fastify({
     logger: {
-      level: process.env.LOG_LEVEL ?? 'info',
+      level: config.LOG_LEVEL,
     },
   });
 
   app.get('/health', async () => ({
     status: 'ok',
     service: 'financial-mfe-bff',
-    environment: process.env.FMH_ENV ?? 'local',
+    environment: config.FMH_ENV,
     timestamp: new Date().toISOString(),
   }));
 

@@ -9,4 +9,6 @@ resource "render_static_site" "this" {
   build_filter = length(var.build_paths) == 0 ? null : {
     paths = var.build_paths
   }
+
+  routes = length(var.routes) == 0 ? null : var.routes
 }

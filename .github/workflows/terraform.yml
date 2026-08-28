@@ -63,13 +63,35 @@ jobs:
           terraform -chdir=infrastructure/terraform/environments/production init -backend=false -input=false
           terraform -chdir=infrastructure/terraform/environments/production validate
 
+      - name: Check Render credentials
+        id: render-credentials
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+        shell: bash
+        run: |
+          if [[ -n "$RENDER_API_KEY" && -n "$RENDER_OWNER_ID" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Production plan
+        if: steps.render-credentials.outputs.available == 'true'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
         run: terraform -chdir=infrastructure/terraform/environments/production plan -input=false -lock=false -out=production.tfplan
 
       - name: Upload plan
+        if: steps.render-credentials.outputs.available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: terraform-production-plan-${{ github.sha }}
           path: infrastructure/terraform/environments/production/production.tfplan
           if-no-files-found: error
           retention-days: 7
+
+      - name: Plan deferred
+        if: steps.render-credentials.outputs.available != 'true'
+        run: echo "Render credentials are not configured in GitHub Secrets yet; fmt and validate passed, and the authenticated production plan remains a local FMH-044 step."

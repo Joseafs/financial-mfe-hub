@@ -11,3 +11,11 @@ variable "build_paths" {
   type    = list(string)
   default = []
 }
+variable "routes" {
+  type = list(object({
+    source      = string
+    destination = string
+    type        = string
+  }))
+  default = []
+}

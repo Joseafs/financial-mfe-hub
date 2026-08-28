@@ -1,14 +1,18 @@
 output "service_prefix" {
-  description = "Prefix reserved for production Render services."
+  description = "Prefix used by production Render services."
   value       = module.shared.service_prefix
 }
 
-output "repository_url" {
-  description = "Repository used by the production environment."
-  value       = module.shared.repository_url
+output "frontend_urls" {
+  description = "Public URLs returned by Render after provisioning the Shell and MFEs."
+  value = {
+    for name, service in module.frontend : name => service.url
+  }
 }
 
-output "branch" {
-  description = "Branch used by the production environment."
-  value       = module.shared.branch
+output "frontend_ids" {
+  description = "Render service IDs for the independently deployed frontends."
+  value = {
+    for name, service in module.frontend : name => service.id
+  }
 }

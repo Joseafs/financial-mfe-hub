@@ -11,6 +11,12 @@ variable "build_paths" {
   type    = list(string)
   default = []
 }
+variable "env_vars" {
+  type = map(object({
+    value = string
+  }))
+  default = {}
+}
 variable "routes" {
   type = list(object({
     source      = string

@@ -46,6 +46,13 @@ locals {
       routes       = []
     }
   }
+
+  production_frontend_urls = {
+    dashboard = "https://${module.shared.service_prefix}-dashboard.onrender.com"
+    accounts  = "https://${module.shared.service_prefix}-accounts.onrender.com"
+    payments  = "https://${module.shared.service_prefix}-payments.onrender.com"
+    insurance = "https://${module.shared.service_prefix}-insurance.onrender.com"
+  }
 }
 
 module "frontend" {
@@ -60,4 +67,26 @@ module "frontend" {
   auto_deploy   = false
   build_paths   = concat(["${each.value.app_path}/**"], module.shared.shared_build_paths)
   routes        = each.value.routes
+
+  env_vars = merge(
+    {
+      FMH_ENV = {
+        value = "production"
+      }
+    },
+    each.key == "shell" ? {
+      FMH_DASHBOARD_URL = {
+        value = local.production_frontend_urls.dashboard
+      }
+      FMH_ACCOUNTS_URL = {
+        value = local.production_frontend_urls.accounts
+      }
+      FMH_PAYMENTS_URL = {
+        value = local.production_frontend_urls.payments
+      }
+      FMH_INSURANCE_URL = {
+        value = local.production_frontend_urls.insurance
+      }
+    } : {}
+  )
 }

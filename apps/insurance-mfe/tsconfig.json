@@ -1,0 +1,4 @@
+{
+  "extends": "@financial-mfe/typescript-config/react.json",
+  "include": ["src"]
+}

@@ -28,6 +28,11 @@ locals {
         },
         {
           name  = "Cache-Control"
+          value = "no-store"
+          path  = "/runtime-services.json"
+        },
+        {
+          name  = "Cache-Control"
           value = "no-cache, must-revalidate"
           path  = "/index.html"
         }
@@ -147,6 +152,9 @@ module "frontend" {
       }
       FMH_INSURANCE_URL = {
         value = local.production_frontend_urls.insurance
+      }
+      FMH_BFF_URL = {
+        value = module.bff.url
       }
     } : {}
   )

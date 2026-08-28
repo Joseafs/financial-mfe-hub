@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "environment": "local",
+  "services": {
+    "bff": {
+      "baseUrl": "http://localhost:4300"
+    }
+  }
+}

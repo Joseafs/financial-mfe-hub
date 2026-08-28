@@ -1,7 +1,8 @@
 import { loadRemoteManifest } from './runtime/remote-manifest';
+import { loadRuntimeServices } from './runtime/runtime-services';
 
 async function bootstrapShell() {
-  await loadRemoteManifest();
+  await Promise.all([loadRemoteManifest(), loadRuntimeServices()]);
   await import('./root-config');
 }
 
@@ -14,7 +15,7 @@ void bootstrapShell().catch((error: unknown) => {
     root.innerHTML = `
       <section class="shell-runtime-error" role="alert">
         <strong>Shell bootstrap failed</strong>
-        <span>O runtime manifest ou o bootstrap do Shell falhou. Abra o console para o diagnóstico técnico.</span>
+        <span>A configuracao de runtime ou o bootstrap do Shell falhou. Abra o console para o diagnostico tecnico.</span>
       </section>
     `;
   }

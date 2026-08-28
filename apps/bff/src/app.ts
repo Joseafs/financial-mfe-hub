@@ -8,12 +8,17 @@ export function buildApp(config: AppConfig = loadConfig()) {
     },
   });
 
-  app.get('/health', async () => ({
-    status: 'ok',
-    service: 'financial-mfe-bff',
-    environment: config.FMH_ENV,
-    timestamp: new Date().toISOString(),
-  }));
+  app.get('/health', async (_request, reply) => {
+    reply.header('Access-Control-Allow-Origin', '*');
+    reply.header('Cache-Control', 'no-store');
+
+    return {
+      status: 'ok',
+      service: 'financial-mfe-bff',
+      environment: config.FMH_ENV,
+      timestamp: new Date().toISOString(),
+    };
+  });
 
   return app;
 }

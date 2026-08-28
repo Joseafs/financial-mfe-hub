@@ -6,7 +6,9 @@ const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(scriptsDir, '..');
 const distDir = resolve(appRoot, 'dist');
 const localManifestPath = resolve(appRoot, 'public/remote-manifest.json');
+const localServicesPath = resolve(appRoot, 'public/runtime-services.json');
 const outputManifestPath = resolve(distDir, 'remote-manifest.json');
+const outputServicesPath = resolve(distDir, 'runtime-services.json');
 
 const remoteEnvironmentVariables = {
   dashboard: 'FMH_DASHBOARD_URL',
@@ -51,11 +53,39 @@ async function buildProductionManifest() {
   };
 }
 
+function buildProductionServices() {
+  const bffUrl = process.env.FMH_BFF_URL;
+
+  if (!bffUrl) {
+    throw new Error('[shell] FMH_BFF_URL is required to build production runtime services');
+  }
+
+  return {
+    schemaVersion: 1,
+    environment: 'production',
+    services: {
+      bff: {
+        baseUrl: normalizeUrl(bffUrl),
+      },
+    },
+  };
+}
+
 await mkdir(distDir, { recursive: true });
 
 if (process.env.FMH_ENV === 'production') {
-  const productionManifest = await buildProductionManifest();
-  await writeFile(outputManifestPath, `${JSON.stringify(productionManifest, null, 2)}\n`);
+  const [productionManifest, productionServices] = await Promise.all([
+    buildProductionManifest(),
+    Promise.resolve(buildProductionServices()),
+  ]);
+
+  await Promise.all([
+    writeFile(outputManifestPath, `${JSON.stringify(productionManifest, null, 2)}\n`),
+    writeFile(outputServicesPath, `${JSON.stringify(productionServices, null, 2)}\n`),
+  ]);
 } else {
-  await copyFile(localManifestPath, outputManifestPath);
+  await Promise.all([
+    copyFile(localManifestPath, outputManifestPath),
+    copyFile(localServicesPath, outputServicesPath),
+  ]);
 }

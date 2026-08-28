@@ -1,0 +1,60 @@
+name: Production Smoke
+
+run-name: Smoke production · ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      bff_url:
+        description: Override opcional da URL publica do BFF
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-production
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: HTTP architecture smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run production smoke
+        env:
+          BFF_URL: ${{ inputs.bff_url }}
+        shell: bash
+        run: |
+          args=(--production)
+
+          if [[ -n "$BFF_URL" ]]; then
+            args+=(--bff "$BFF_URL")
+          fi
+
+          node scripts/smoke.mjs "${args[@]}"
+
+      - name: Smoke summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Financial MFE Hub production smoke"
+            echo ""
+            echo "- Ref: \`${{ github.ref_name }}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Result: \`${{ job.status }}\`"
+            echo ""
+            echo "> O smoke HTTP valida Shell, runtime manifest, rotas diretas, remoteEntry dos quatro MFEs e BFF /health. A montagem real em browser entra na camada Playwright da FMH-049."
+          } >> "$GITHUB_STEP_SUMMARY"

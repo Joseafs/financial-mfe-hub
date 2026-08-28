@@ -67,11 +67,11 @@ export default (_env, argv) => ({
   <body>
     <header>
       <strong>Financial MFE Hub</strong> · Architecture Validation
-      <nav>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/accounts">Accounts</a>
-        <a href="/payments">Payments</a>
-        <a href="/insurance">Insurance</a>
+      <nav aria-label="Arquitetura">
+        <a data-single-spa-navigation href="/dashboard">Dashboard</a>
+        <a data-single-spa-navigation href="/accounts">Accounts</a>
+        <a data-single-spa-navigation href="/payments">Payments</a>
+        <a data-single-spa-navigation href="/insurance">Insurance</a>
       </nav>
     </header>
     <main id="mfe-root"></main>

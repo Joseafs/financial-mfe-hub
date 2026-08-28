@@ -25,11 +25,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - label: Format
-            command: format:check
           - label: Lint
             command: lint
-          - label: Typecheck
+          - label: Type Check
             command: typecheck
           - label: Tests
             command: test

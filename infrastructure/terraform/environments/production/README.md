@@ -45,9 +45,9 @@ financial-mfe-hub-production-bff
 
 Os cinco frontends sao Static Sites. O BFF e um Web Service Node com health check em `/health`.
 
-O plano padrao do BFF esta configurado como `starter` e a regiao como `virginia`. **Revise a cobranca vigente da sua conta Render antes de executar `apply`**, pois planos de Web Service podem gerar custo. Esses valores podem ser alterados pelas variaveis Terraform `bff_plan` e `bff_region`.
+O case usa o plano `free` para o BFF e a regiao inicial `virginia`. O objetivo deste ambiente e demonstracao arquitetural sem custo de compute dedicado. Como consequencia, o Web Service pode sofrer cold start apos inatividade; isso e comportamento esperado do ambiente demo e deve ser considerado nos smoke tests.
 
-Se o plan estiver correto e o custo estiver deliberadamente aceito:
+Se o plan estiver correto:
 
 ```powershell
 pnpm render:apply
@@ -76,13 +76,14 @@ O esperado e um JSON com `status: "ok"`, identificacao do servico, ambiente `pro
 ## 4. Decisoes desta etapa
 
 - cada frontend e um recurso Render independente;
-- o BFF e um Render Web Service independente;
+- o BFF e um Render Web Service independente no plano `free`;
 - `auto_deploy = false` enquanto a estrategia de CD nao for fechada na FMH-046;
 - cada servico executa somente o build do proprio package;
 - build filters incluem o app e os packages/configs compartilhados do monorepo;
 - o Shell possui rewrite `/* -> /index.html` para suportar navegacao Single-SPA por URL direta;
 - o BFF usa `HOST=0.0.0.0`, recebe `PORT` do Render e valida configuracao no bootstrap;
-- o build usa `--no-frozen-lockfile` temporariamente enquanto `pnpm-lock.yaml` ainda nao estiver versionado;
+- cold start do BFF gratuito deve ser tolerado pelas validacoes operacionais;
+- `pnpm-lock.yaml` e `.terraform.lock.hcl` sao versionados para reproducibilidade;
 - estado Terraform, `.env` real e plans permanecem fora do Git;
 - os comandos operacionais de Render ficam expostos como scripts do `package.json`, mantendo a interface de execucao consistente com o restante do monorepo;
 - existe um unico `.env.example` na raiz para evitar configuracao duplicada entre aplicacao e infraestrutura local.

@@ -13,16 +13,20 @@ if (!description) {
 }
 
 function git(commandArgs, options = {}) {
-  return execFileSync('git', commandArgs, {
+  const output = execFileSync('git', commandArgs, {
     encoding: 'utf8',
     stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  });
+
+  return typeof output === 'string' ? output.trim() : '';
 }
 
 const workingTree = git(['status', '--porcelain']);
 
 if (workingTree) {
-  console.error('A working tree precisa estar limpa antes de criar uma tag. Commit ou descarte as alterações locais.');
+  console.error(
+    'A working tree precisa estar limpa antes de criar uma tag. Commit ou descarte as alterações locais.',
+  );
   process.exit(1);
 }
 
@@ -35,6 +39,21 @@ const tags = git(['tag', '--list', 'v*', '--sort=-v:refname'])
   .filter(Boolean)
   .map((tag) => ({ tag, match: tag.match(versionPattern) }))
   .filter(({ match }) => Boolean(match));
+
+const latestTag = tags[0]?.tag;
+
+if (latestTag) {
+  const headCommit = git(['rev-parse', 'HEAD']);
+  const tagCommit = git(['rev-list', '-n', '1', latestTag]);
+  const remoteTag = git(['ls-remote', '--tags', 'origin', `refs/tags/${latestTag}`]);
+
+  if (tagCommit === headCommit && !remoteTag) {
+    console.log(`Tag local ${latestTag} encontrada sem push. Enviando para origin...`);
+    git(['push', 'origin', latestTag], { stdio: 'inherit' });
+    console.log(`Tag ${latestTag} enviada para origin.`);
+    process.exit(0);
+  }
+}
 
 const current = tags[0]?.match;
 let major = current ? Number(current[1]) : 0;

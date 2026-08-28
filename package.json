@@ -8,8 +8,7 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "pnpm run --parallel \"/^dev:(active|stable)$/\"",
-    "dev:active": "turbo run dev --parallel",
+    "dev": "turbo run dev --parallel",
     "dev:stable": "turbo run dev:stable --parallel",
     "build": "turbo run build",
     "lint": "turbo run lint",

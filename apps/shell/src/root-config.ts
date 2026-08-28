@@ -10,6 +10,7 @@ import {
   type RemoteLifecycleModule,
 } from './runtime/remote-fallback';
 import {
+  clearReleaseOverride,
   getRemoteDefinition,
   getRemoteManifest,
   type RemoteName,
@@ -92,6 +93,64 @@ function syncShellNavigation() {
   }
 }
 
+function syncRollbackControl() {
+  document.querySelector('[data-rollback-control]')?.remove();
+
+  const rolledBack = applications
+    .map((application) => ({
+      name: application.name,
+      selected: getRemoteDefinition(application.name),
+      remote: getRemoteManifest().remotes[application.name],
+    }))
+    .find(({ selected }) => selected.channel === 'stable');
+
+  if (!rolledBack) {
+    return;
+  }
+
+  const stage = document.querySelector<HTMLElement>('.shell-stage');
+  const header = stage?.querySelector<HTMLElement>('.shell-stage__header');
+
+  if (!stage || !header) {
+    return;
+  }
+
+  const control = document.createElement('div');
+  control.dataset.rollbackControl = rolledBack.name;
+  control.style.display = 'flex';
+  control.style.alignItems = 'center';
+  control.style.justifyContent = 'space-between';
+  control.style.gap = '12px';
+  control.style.flexWrap = 'wrap';
+  control.style.marginBottom = '14px';
+  control.style.padding = '12px 14px';
+  control.style.borderRadius = '14px';
+  control.style.border = '1px solid rgba(74,222,128,.28)';
+  control.style.background = 'rgba(20,83,45,.18)';
+
+  const text = document.createElement('span');
+  text.style.color = '#bbf7d0';
+  text.style.fontSize = '12px';
+  text.textContent = `${rolledBack.name} está em rollback: stable v${rolledBack.selected.version} · active v${rolledBack.remote.active.version}`;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.style.border = '1px solid rgba(187,247,208,.3)';
+  button.style.borderRadius = '10px';
+  button.style.padding = '8px 11px';
+  button.style.background = 'rgba(15,23,42,.56)';
+  button.style.color = '#dcfce7';
+  button.style.cursor = 'pointer';
+  button.textContent = `Restaurar active v${rolledBack.remote.active.version}`;
+  button.addEventListener('click', () => {
+    clearReleaseOverride(rolledBack.name);
+    window.location.reload();
+  });
+
+  control.append(text, button);
+  header.insertAdjacentElement('afterend', control);
+}
+
 function syncManifestMetadata() {
   const manifest = getRemoteManifest();
   const runtimeStatus = document.querySelector<HTMLElement>('.shell-live');
@@ -120,6 +179,8 @@ function syncManifestMetadata() {
       role.textContent = `${selectedLabel}v${selected.version}${stableLabel} · ${new URL(selected.remoteEntry).host}`;
     }
   }
+
+  syncRollbackControl();
 }
 
 document.addEventListener('click', handleShellNavigation);

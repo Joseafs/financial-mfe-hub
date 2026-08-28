@@ -25,8 +25,91 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate ${{ inputs.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Require main branch
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Deploy de production deve partir da branch main. Ref recebida: $GITHUB_REF"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve deployable package
+        id: deployable
+        shell: bash
+        run: |
+          case "${{ inputs.service }}" in
+            shell) package_name="@financial-mfe/shell" ;;
+            dashboard) package_name="@financial-mfe/dashboard" ;;
+            accounts) package_name="@financial-mfe/accounts" ;;
+            payments) package_name="@financial-mfe/payments" ;;
+            insurance) package_name="@financial-mfe/insurance" ;;
+            bff) package_name="@financial-mfe/bff" ;;
+            *)
+              echo "::error::Servico invalido: ${{ inputs.service }}"
+              exit 1
+              ;;
+          esac
+
+          echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Build selected deployable
+        env:
+          PACKAGE_NAME: ${{ steps.deployable.outputs.package_name }}
+        run: pnpm --filter "$PACKAGE_NAME" build
+
+      - name: Validation summary
+        shell: bash
+        run: |
+          {
+            echo "## Production validation passed"
+            echo ""
+            echo "- Service: \`${{ inputs.service }}\`"
+            echo "- Package: \`${{ steps.deployable.outputs.package_name }}\`"
+            echo "- Ref: \`${{ github.ref_name }}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy:
     name: Deploy ${{ inputs.service }}
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
@@ -86,6 +169,7 @@ jobs:
             echo "- Service: \`${{ inputs.service }}\`"
             echo "- Git ref: \`${{ github.ref_name }}\`"
             echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Strategy: \`GitHub Actions -> Render deploy hook\`"
             echo ""
-            echo "> O smoke pos-deploy e a promocao automatica ficam para FMH-049/FMH-046 apos a infraestrutura Render estar provisionada."
+            echo "> Smoke pos-deploy sera automatizado pela FMH-049."
           } >> "$GITHUB_STEP_SUMMARY"

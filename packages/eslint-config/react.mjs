@@ -21,4 +21,16 @@ export default [
       ],
     },
   },
+  {
+    files: ['**/*.config.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    files: ['**/*.d.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
 ];

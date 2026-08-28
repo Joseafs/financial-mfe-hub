@@ -8,7 +8,10 @@
         "version": "0.0.1",
         "remoteEntry": "http://localhost:4201/remoteEntry.js"
       },
-      "stable": null
+      "stable": {
+        "version": "0.0.0",
+        "remoteEntry": "http://localhost:4211/remoteEntry.js"
+      }
     },
     "accounts": {
       "scope": "accounts",
@@ -16,7 +19,10 @@
         "version": "0.0.1",
         "remoteEntry": "http://localhost:4202/remoteEntry.js"
       },
-      "stable": null
+      "stable": {
+        "version": "0.0.0",
+        "remoteEntry": "http://localhost:4212/remoteEntry.js"
+      }
     },
     "payments": {
       "scope": "payments",
@@ -35,7 +41,10 @@
         "version": "0.0.1",
         "remoteEntry": "http://localhost:4204/remoteEntry.js"
       },
-      "stable": null
+      "stable": {
+        "version": "0.0.0",
+        "remoteEntry": "http://localhost:4214/remoteEntry.js"
+      }
     }
   }
 }

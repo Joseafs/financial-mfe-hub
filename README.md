@@ -1,44 +1,56 @@
 # Financial MFE Hub
 
-POC de arquitetura front-end distribuída para um domínio financeiro fictício, com foco em **Micro Frontends**, **Single-SPA**, **Webpack Module Federation**, contratos compartilhados com **Zod** e uma camada **BFF em Fastify**.
+[Português](./README.md) | [English](./README.en.md)
 
-> Projeto educacional e de portfólio. Os dados, regras e fluxos financeiros são fictícios.
+Case full-stack de arquitetura para um **hub financeiro fictício**. O projeto demonstra como **Micro Frontends**, contratos compartilhados, regras de negócio, interface, BFF, internacionalização, testes, observabilidade, CI/CD e infraestrutura podem evoluir juntos dentro de um monorepo.
+
+> Projeto educacional e de portfólio. Os dados, regras e fluxos financeiros são fictícios e não representam uma instituição financeira real.
 
 ## Objetivo
 
-O projeto existe para explorar, de forma prática, uma arquitetura próxima de cenários corporativos de alta criticidade, mantendo responsabilidades bem definidas entre aplicações, módulos e contratos.
+Construir um case técnico próximo de cenários corporativos de alta criticidade, com responsabilidades explícitas, deploy independente por aplicação e decisões arquiteturais documentadas antes da implementação.
 
-Os principais objetivos são:
+O projeto explora:
 
-- orquestrar múltiplos Micro Frontends em uma única experiência;
-- permitir evolução e deploy independentes dos MFEs;
-- compartilhar módulos em runtime com Module Federation;
-- centralizar contratos de entrada e saída com Zod;
-- reutilizar schemas Zod na validação de formulários e na API;
-- concentrar regras sensíveis e composição de dados no BFF;
-- aplicar testes automatizados, observabilidade e gates de CI/CD;
-- documentar decisões e evolução pelo fluxo SDD + tasks.
+- React + TypeScript em múltiplos Micro Frontends;
+- orquestração com Single-SPA;
+- composição runtime com Webpack Module Federation;
+- monorepo com pnpm + Turborepo;
+- contratos Zod compartilhados entre front-end, BFF e testes;
+- formulários com React Hook Form + Zod;
+- BFF em Fastify + Node.js;
+- internacionalização com PT-BR como idioma padrão e inglês como alternativa;
+- testes unitários, integração, contrato e E2E;
+- Core Web Vitals, acessibilidade e observabilidade;
+- CI/CD com GitHub Actions;
+- infraestrutura AWS declarada com Terraform.
 
-## Arquitetura proposta
+## Arquitetura
 
 ```mermaid
 flowchart LR
-  User["Usuário"] --> Shell["Shell / Root Config\nSingle-SPA"]
+  User["Usuário"] --> CDN["CloudFront"]
+  CDN --> Static["S3\nShell + MFEs"]
+  Static --> Shell["Shell / Root Config\nSingle-SPA"]
 
-  Shell --> Dashboard["Dashboard MFE\nReact"]
-  Shell --> Accounts["Accounts MFE\nReact"]
-  Shell --> Payments["Payments MFE\nReact"]
-  Shell --> Insurance["Insurance MFE\nReact"]
+  Shell --> Dashboard["Dashboard MFE"]
+  Shell --> Accounts["Accounts MFE"]
+  Shell --> Payments["Payments MFE"]
+  Shell --> Insurance["Insurance MFE"]
 
-  Dashboard -. "Module Federation" .-> Shared["Módulos compartilhados"]
+  Dashboard -. "Module Federation" .-> Shared["Módulos federados"]
   Accounts -. "Module Federation" .-> Shared
   Payments -. "Module Federation" .-> Shared
   Insurance -. "Module Federation" .-> Shared
 
-  Dashboard --> BFF["BFF\nFastify + Node.js"]
-  Accounts --> BFF
-  Payments --> BFF
-  Insurance --> BFF
+  Dashboard --> API["API Gateway"]
+  Accounts --> API
+  Payments --> API
+  Insurance --> API
+
+  API --> BFF["Fastify BFF\nAWS Lambda"]
+  BFF --> Services["Serviços financeiros fictícios"]
+  BFF --> Logs["CloudWatch"]
 
   Contracts["packages/contracts\nZod"] --> Dashboard
   Contracts --> Accounts
@@ -46,20 +58,32 @@ flowchart LR
   Contracts --> Insurance
   Contracts --> BFF
 
-  BFF --> Services["Serviços financeiros fictícios"]
+  I18n["packages/i18n\nPT-BR / EN"] --> Shell
+  I18n --> Dashboard
+  I18n --> Accounts
+  I18n --> Payments
+  I18n --> Insurance
+
+  Terraform["Terraform"] -. "provisiona" .-> CDN
+  Terraform -. "provisiona" .-> Static
+  Terraform -. "provisiona" .-> API
+  Terraform -. "provisiona" .-> BFF
+  Terraform -. "provisiona" .-> Logs
 ```
 
-### Responsabilidades principais
+## Responsabilidades principais
 
-**Single-SPA** decide quais aplicações devem ser carregadas e montadas conforme rota e contexto.
+**Single-SPA** controla o ciclo de vida e decide quais aplicações são montadas conforme rota e contexto.
 
-**Module Federation** permite que aplicações exponham e consumam módulos em runtime, sem transformar toda integração em dependência publicada por pacote.
+**Module Federation** permite expor e consumir módulos públicos em runtime, mantendo contratos explícitos entre host e remotes.
 
-**Turborepo** organiza o workspace, dependências, tarefas e cache. Ele não substitui a arquitetura de Micro Frontends.
+**Turborepo** coordena dependências, cache e tarefas do monorepo. Ele não substitui a arquitetura de Micro Frontends.
 
-**Fastify BFF** concentra composição de dados, autorização, regras dependentes de serviços e adaptação das APIs para as necessidades do front-end.
+**Fastify BFF** centraliza adaptação de dados, validação autoritativa, autenticação, autorização, composição de respostas e isolamento de serviços downstream.
 
-**Zod** define contratos reutilizáveis entre front-end, BFF e testes. O front valida cedo por experiência de usuário; o BFF valida novamente e continua sendo a autoridade.
+**Zod** define contratos runtime reutilizados entre front-end, BFF e testes. O front valida cedo por UX; o servidor valida novamente e permanece a autoridade.
+
+**Terraform** descreve a infraestrutura AWS como código e permite revisar mudanças com `plan` antes de qualquer aplicação.
 
 ## Stack planejada
 
@@ -73,8 +97,10 @@ flowchart LR
 - Module Federation
 - React Router
 - TanStack Query
-- Zustand, apenas para estado global necessário
+- Zustand somente para estado client-side realmente global
+- React Hook Form
 - Zod
+- i18next + react-i18next
 
 ### BFF
 
@@ -82,6 +108,8 @@ flowchart LR
 - Fastify
 - TypeScript
 - Zod
+- Swagger / OpenAPI
+- logging estruturado
 
 ### Monorepo e qualidade
 
@@ -92,8 +120,19 @@ flowchart LR
 - Jest
 - React Testing Library
 - MSW
+- Faker
 - Playwright
 - Storybook
+
+### Infraestrutura e entrega
+
+- AWS S3
+- AWS CloudFront
+- AWS Lambda
+- Amazon API Gateway
+- Amazon CloudWatch
+- AWS Budgets
+- Terraform
 - GitHub Actions
 
 ## Estrutura alvo
@@ -108,45 +147,78 @@ apps/
 └── bff/                   Fastify BFF
 
 packages/
-├── context/               SDD, decisões e fluxo de tasks
+├── context/               SDD, ADRs, decisões e fluxo de tasks
 ├── contracts/             schemas Zod e tipos inferidos
 ├── ui/                    componentes e tokens compartilhados
-├── auth/                  primitivas e contratos de autenticação
+├── auth/                  contratos e primitivas de autenticação
+├── i18n/                  configuração e contratos de idioma
 ├── eslint-config/
 └── typescript-config/
+
+infrastructure/
+└── terraform/
+    ├── modules/
+    │   ├── frontend/
+    │   ├── bff/
+    │   ├── observability/
+    │   └── budget/
+    └── environments/
+        └── production/
 ```
 
 ## Validação compartilhada
 
 ```mermaid
 flowchart LR
-  Contracts["Schema Zod único"] --> Form["React Form"]
-  Contracts --> API["Fastify BFF"]
+  Contracts["Schema Zod único"] --> Form["React Hook Form"]
+  Contracts --> BFF["Fastify BFF"]
   Form -->|"feedback imediato"| User["Usuário"]
-  Form -->|"request"| API
-  API -->|"validação autoritativa"| Domain["Regras / serviços"]
+  Form -->|"request"| BFF
+  BFF -->|"validação autoritativa"| Domain["Regras / serviços"]
 ```
 
-Exemplo de separação de responsabilidades:
+Exemplos:
 
 - `valor > 0`: contrato Zod compartilhado;
 - formato de documento ou e-mail: contrato Zod compartilhado;
-- usuário possui saldo suficiente: regra do BFF/domínio;
-- usuário tem autorização para executar a operação: regra do BFF.
+- saldo disponível suficiente: regra de domínio/BFF;
+- autorização para executar operação: regra do BFF.
+
+## Internacionalização
+
+O produto usa **PT-BR como idioma padrão** e **inglês (`en`) como alternativa**.
+
+A preferência de idioma é coordenada pelo Shell, enquanto cada MFE mantém seus próprios namespaces de tradução. Alterações de idioma devem utilizar um contrato público e não depender de stores internas de outro MFE.
+
+## Estratégia de deploy
+
+O objetivo é manter deploy independente sem criar infraestrutura desnecessariamente cara.
+
+```text
+GitHub Actions
+      │
+      ├── shell ───────────────┐
+      ├── dashboard-mfe ───────┤
+      ├── accounts-mfe ────────┤──> S3 -> CloudFront
+      ├── payments-mfe ────────┤
+      └── insurance-mfe ───────┘
+
+      └── bff -> Lambda -> API Gateway
+                         └-> CloudWatch
+```
+
+Os assets podem compartilhar a mesma infraestrutura física por prefixes/versionamento, mas cada aplicação possui pipeline, artefato e promoção independentes.
 
 ## Documentação
 
-A documentação técnica e o histórico de evolução ficam em [`packages/context`](./packages/context/README.md):
+A documentação canônica fica em [`packages/context`](./packages/context/README.md):
 
-- [`SDD.md`](./packages/context/SDD.md): arquitetura, fronteiras e decisões técnicas;
-- [`PROJECT-TASKS.md`](./packages/context/PROJECT-TASKS.md): fluxo incremental de implementação e critérios de conclusão.
+- [`SDD.md`](./packages/context/SDD.md): arquitetura, fronteiras, decisões, segurança, performance, i18n, CI/CD e infraestrutura;
+- [`PROJECT-TASKS.md`](./packages/context/PROJECT-TASKS.md): fluxo incremental e critérios de conclusão;
+- `adr/`: decisões arquiteturais que precisem de registro histórico próprio.
 
 ## Status
 
 🟡 **Fase de definição arquitetural.**
 
-A primeira etapa é consolidar o SDD e o fluxo de tarefas antes de iniciar a implementação.
-
-## Idiomas
-
-Este README em **PT-BR é a documentação padrão** do projeto. Uma versão em inglês será adicionada em `README.en.md` quando a base arquitetural estiver estabilizada.
+Nenhuma implementação funcional deve começar antes da consolidação do SDD, das decisões abertas e do backlog técnico inicial.

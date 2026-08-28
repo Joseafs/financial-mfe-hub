@@ -1,0 +1,75 @@
+name: Terraform
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/terraform/**'
+      - '.github/workflows/terraform.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/terraform/**'
+      - '.github/workflows/terraform.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_IN_AUTOMATION: true
+
+jobs:
+  validate:
+    name: Terraform fmt · validate · plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.0
+
+      - name: Format check
+        run: terraform fmt -check -recursive infrastructure/terraform
+
+      - name: Validate root module
+        shell: bash
+        run: |
+          terraform -chdir=infrastructure/terraform init -backend=false -input=false
+          terraform -chdir=infrastructure/terraform validate
+
+      - name: Validate reusable modules
+        shell: bash
+        run: |
+          for module in shared static-site web-service; do
+            terraform -chdir="infrastructure/terraform/modules/$module" init -backend=false -input=false
+            terraform -chdir="infrastructure/terraform/modules/$module" validate
+          done
+
+      - name: Validate production environment
+        shell: bash
+        run: |
+          terraform -chdir=infrastructure/terraform/environments/production init -backend=false -input=false
+          terraform -chdir=infrastructure/terraform/environments/production validate
+
+      - name: Production plan
+        run: terraform -chdir=infrastructure/terraform/environments/production plan -input=false -lock=false -out=production.tfplan
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-production-plan-${{ github.sha }}
+          path: infrastructure/terraform/environments/production/production.tfplan
+          if-no-files-found: error
+          retention-days: 7

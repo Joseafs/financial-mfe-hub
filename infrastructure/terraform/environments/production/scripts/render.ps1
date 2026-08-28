@@ -61,7 +61,7 @@ try {
     }
     'apply' {
       if (-not (Test-Path $PlanFile)) {
-        throw 'production.tfplan nao encontrado. Execute primeiro: .\scripts\render.ps1 plan'
+        throw 'production.tfplan nao encontrado. Execute primeiro: pnpm render:plan'
       }
 
       terraform apply production.tfplan

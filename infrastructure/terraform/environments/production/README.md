@@ -6,11 +6,11 @@ A criacao dos servicos e feita pelo Terraform. Nenhuma credencial do Render deve
 
 ## 1. Preparar as credenciais locais
 
-No PowerShell, dentro desta pasta:
+A partir da raiz do repositorio:
 
 ```powershell
-Copy-Item .env.example .env
-notepad .env
+Copy-Item infrastructure/terraform/environments/production/.env.example infrastructure/terraform/environments/production/.env
+notepad infrastructure/terraform/environments/production/.env
 ```
 
 Preencha somente o arquivo `.env` local:
@@ -24,12 +24,12 @@ O provider oficial `render-oss/render` le essas duas variaveis diretamente do am
 
 ## 2. Provisionar
 
-Com Terraform instalado:
+Com Terraform instalado, execute sempre pela raiz do repositorio:
 
 ```powershell
-.\scripts\render.ps1 init
-.\scripts\render.ps1 validate
-.\scripts\render.ps1 plan
+pnpm render:init
+pnpm render:validate
+pnpm render:plan
 ```
 
 Revise o plan. O esperado na primeira execucao e a criacao de cinco Static Sites:
@@ -45,7 +45,7 @@ financial-mfe-hub-production-insurance
 Se o plan estiver correto:
 
 ```powershell
-.\scripts\render.ps1 apply
+pnpm render:apply
 ```
 
 O `apply` usa exatamente o arquivo `production.tfplan` criado pelo comando anterior.
@@ -55,7 +55,7 @@ O `apply` usa exatamente o arquivo `production.tfplan` criado pelo comando anter
 Depois do apply:
 
 ```powershell
-.\scripts\render.ps1 output
+pnpm render:output
 ```
 
 O Terraform retorna as cinco URLs publicas em `frontend_urls`.
@@ -68,14 +68,15 @@ O Terraform retorna as cinco URLs publicas em `frontend_urls`.
 - build filters incluem o app e os packages/configs compartilhados do monorepo;
 - o Shell possui rewrite `/* -> /index.html` para suportar navegacao Single-SPA por URL direta;
 - o build usa `--no-frozen-lockfile` temporariamente enquanto `pnpm-lock.yaml` ainda nao estiver versionado;
-- estado Terraform, `.env` real e plans permanecem fora do Git.
+- estado Terraform, `.env` real e plans permanecem fora do Git;
+- os comandos operacionais de Render ficam expostos como scripts do `package.json`, mantendo a interface de execucao consistente com o restante do monorepo.
 
 ## 5. Destruir o ambiente de demo
 
 Somente quando a remocao for intencional:
 
 ```powershell
-.\scripts\render.ps1 destroy
+pnpm render:destroy
 ```
 
 Nunca execute `destroy` como parte de CI/CD automatico.

@@ -20,9 +20,10 @@ Contém:
 - estratégia de formulários;
 - autenticação e autorização;
 - estado e comunicação entre MFEs;
+- internacionalização;
 - segurança, performance e observabilidade;
 - testes;
-- CI/CD e estratégia de deploy;
+- CI/CD, Terraform e estratégia de deploy;
 - critérios arquiteturais de aceite.
 
 ### [`PROJECT-TASKS.md`](./PROJECT-TASKS.md)
@@ -64,10 +65,25 @@ FMH-003
 ...
 ```
 
-Commits relacionados a uma task devem, quando fizer sentido, citar seu identificador:
+Toda alteração versionada deve estar vinculada a uma task. O identificador entra no próprio commit para manter rastreabilidade entre planejamento, implementação e histórico Git.
+
+Formato padrão:
 
 ```text
-feat(shell): bootstrap single-spa root config [FMH-004]
+<tipo>: <TASK-ID> - <descrição em pt-BR>
 ```
+
+Exemplos:
+
+```text
+feat: FMH-001 - consolida SDD e arquitetura inicial
+feat: FMH-005 - cria shell com orquestração single-spa
+fix: FMH-029 - corrige reenvio da transferência
+refactor: FMH-018 - separa bootstrap do fastify
+```
+
+O tipo segue Conventional Commits (`feat`, `fix`, `refactor`, `test`, `chore` etc.), enquanto a descrição permanece em PT-BR.
+
+A documentação e o próprio SDD também fazem parte do fluxo de tasks. Portanto, alterações arquiteturais não ficam fora da rastreabilidade apenas por não modificarem código de produção.
 
 Uma task só pode ser considerada concluída quando houver evidência suficiente para reproduzir sua validação.

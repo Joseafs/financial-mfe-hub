@@ -17,6 +17,14 @@ variable "env_vars" {
   }))
   default = {}
 }
+variable "headers" {
+  type = list(object({
+    name  = string
+    value = string
+    path  = string
+  }))
+  default = []
+}
 variable "routes" {
   type = list(object({
     source      = string

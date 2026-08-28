@@ -73,14 +73,27 @@ Valide o BFF em:
 
 O esperado e um JSON com `status: "ok"`, identificacao do servico, ambiente `production` e timestamp.
 
-## 4. Decisoes desta etapa
+## 4. Cache de runtime
+
+A configuracao do Render diferencia arquivos de descoberta em runtime dos demais artefatos:
+
+```text
+Shell /remote-manifest.json -> Cache-Control: no-store
+Shell /index.html           -> Cache-Control: no-cache, must-revalidate
+MFE /remoteEntry.js         -> Cache-Control: no-cache, must-revalidate
+```
+
+O objetivo e impedir que o Shell ou um remote mantenham por tempo excessivo um ponteiro de release antigo. O `remoteEntry.js` continua com nome estavel porque e o ponto de entrada conhecido pelo runtime manifest. A etapa seguinte da FMH-047 e fingerprintar os chunks internos para permitir cache imutavel sem tornar o `remoteEntry.js` imutavel.
+
+## 5. Decisoes desta etapa
 
 - cada frontend e um recurso Render independente;
 - o BFF e um Render Web Service independente no plano `free`;
-- `auto_deploy = false` enquanto a estrategia de CD nao for fechada na FMH-046;
+- `auto_deploy = false`; o GitHub Actions controla publicacoes na FMH-046;
 - cada servico executa somente o build do proprio package;
 - build filters incluem o app e os packages/configs compartilhados do monorepo;
 - o Shell possui rewrite `/* -> /index.html` para suportar navegacao Single-SPA por URL direta;
+- o Shell e os MFEs usam headers explicitos para revalidar manifest, HTML de entrada e `remoteEntry.js`;
 - o BFF usa `HOST=0.0.0.0`, recebe `PORT` do Render e valida configuracao no bootstrap;
 - cold start do BFF gratuito deve ser tolerado pelas validacoes operacionais;
 - `pnpm-lock.yaml` e `.terraform.lock.hcl` sao versionados para reproducibilidade;
@@ -88,7 +101,7 @@ O esperado e um JSON com `status: "ok"`, identificacao do servico, ambiente `pro
 - os comandos operacionais de Render ficam expostos como scripts do `package.json`, mantendo a interface de execucao consistente com o restante do monorepo;
 - existe um unico `.env.example` na raiz para evitar configuracao duplicada entre aplicacao e infraestrutura local.
 
-## 5. Destruir o ambiente de demo
+## 6. Destruir o ambiente de demo
 
 Somente quando a remocao for intencional:
 

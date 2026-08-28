@@ -20,30 +20,70 @@ locals {
           type        = "rewrite"
         }
       ]
+      headers = [
+        {
+          name  = "Cache-Control"
+          value = "no-store"
+          path  = "/remote-manifest.json"
+        },
+        {
+          name  = "Cache-Control"
+          value = "no-cache, must-revalidate"
+          path  = "/index.html"
+        }
+      ]
     }
     dashboard = {
       package_name = "@financial-mfe/dashboard"
       app_path     = "apps/dashboard-mfe"
       publish_path = "apps/dashboard-mfe/dist"
       routes       = []
+      headers = [
+        {
+          name  = "Cache-Control"
+          value = "no-cache, must-revalidate"
+          path  = "/remoteEntry.js"
+        }
+      ]
     }
     accounts = {
       package_name = "@financial-mfe/accounts"
       app_path     = "apps/accounts-mfe"
       publish_path = "apps/accounts-mfe/dist"
       routes       = []
+      headers = [
+        {
+          name  = "Cache-Control"
+          value = "no-cache, must-revalidate"
+          path  = "/remoteEntry.js"
+        }
+      ]
     }
     payments = {
       package_name = "@financial-mfe/payments"
       app_path     = "apps/payments-mfe"
       publish_path = "apps/payments-mfe/dist"
       routes       = []
+      headers = [
+        {
+          name  = "Cache-Control"
+          value = "no-cache, must-revalidate"
+          path  = "/remoteEntry.js"
+        }
+      ]
     }
     insurance = {
       package_name = "@financial-mfe/insurance"
       app_path     = "apps/insurance-mfe"
       publish_path = "apps/insurance-mfe/dist"
       routes       = []
+      headers = [
+        {
+          name  = "Cache-Control"
+          value = "no-cache, must-revalidate"
+          path  = "/remoteEntry.js"
+        }
+      ]
     }
   }
 
@@ -67,6 +107,7 @@ module "frontend" {
   auto_deploy   = false
   build_paths   = concat(["${each.value.app_path}/**"], module.shared.shared_build_paths)
   routes        = each.value.routes
+  headers       = each.value.headers
 
   env_vars = merge(
     {

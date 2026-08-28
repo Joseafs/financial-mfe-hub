@@ -50,6 +50,23 @@ Backlog técnico incremental e rastreável.
 
 Cada task deve representar uma entrega pequena, validável e com evidência objetiva de conclusão.
 
+### [`adr/ADR-001-architecture-validation-first.md`](./adr/ADR-001-architecture-validation-first.md)
+
+Decisão que estabelece **Architecture Validation First** como estratégia inicial do projeto.
+
+Antes de aprofundar regras de negócio, o case deve provar a plataforma com Shell, MFEs visuais mínimos, BFF `/health`, CI/CD, Terraform + Render, runtime config, smoke tests e rollback.
+
+Os stubs usam identidades visuais distintas para facilitar diagnóstico durante a validação arquitetural:
+
+```text
+Dashboard -> azul
+Accounts  -> verde
+Payments  -> roxo
+Insurance -> laranja
+```
+
+A UI inicial é propositalmente simples e não representa o design final do produto.
+
 ## Fluxo de execução
 
 ```mermaid

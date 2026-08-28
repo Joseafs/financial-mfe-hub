@@ -85,7 +85,36 @@ MFE /remoteEntry.js         -> Cache-Control: no-cache, must-revalidate
 
 O objetivo e impedir que o Shell ou um remote mantenham por tempo excessivo um ponteiro de release antigo. O `remoteEntry.js` continua com nome estavel porque e o ponto de entrada conhecido pelo runtime manifest. A etapa seguinte da FMH-047 e fingerprintar os chunks internos para permitir cache imutavel sem tornar o `remoteEntry.js` imutavel.
 
-## 5. Decisoes desta etapa
+## 5. Smoke HTTP
+
+Depois que o ambiente estiver publicado, execute:
+
+```powershell
+pnpm smoke:production
+```
+
+O smoke valida:
+
+```text
+/architecture-health
+/remote-manifest.json
+/dashboard
+/accounts
+/payments
+/insurance
+remoteEntry.js dos quatro MFEs
+BFF /health
+```
+
+O BFF gratuito recebe uma janela maior de retry para tolerar cold start do Render. Se alguma URL publicada for diferente do nome padrao esperado, ela pode ser sobrescrita pela linha de comando:
+
+```powershell
+pnpm smoke:production -- --bff https://<url-real-do-bff>
+```
+
+Este smoke e propositalmente HTTP. A montagem real dos MFEs em navegador continua como a segunda camada da FMH-049 e sera automatizada com Playwright antes do Architecture Gate.
+
+## 6. Decisoes desta etapa
 
 - cada frontend e um recurso Render independente;
 - o BFF e um Render Web Service independente no plano `free`;
@@ -101,7 +130,7 @@ O objetivo e impedir que o Shell ou um remote mantenham por tempo excessivo um p
 - os comandos operacionais de Render ficam expostos como scripts do `package.json`, mantendo a interface de execucao consistente com o restante do monorepo;
 - existe um unico `.env.example` na raiz para evitar configuracao duplicada entre aplicacao e infraestrutura local.
 
-## 6. Destruir o ambiente de demo
+## 7. Destruir o ambiente de demo
 
 Somente quando a remocao for intencional:
 

@@ -15,6 +15,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format:check": "turbo run format:check",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:production": "node scripts/smoke.mjs --production",
     "tag": "node scripts/tag.mjs",
     "render:init": "powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/terraform/environments/production/scripts/render.ps1 init",
     "render:validate": "powershell -NoProfile -ExecutionPolicy Bypass -File infrastructure/terraform/environments/production/scripts/render.ps1 validate",

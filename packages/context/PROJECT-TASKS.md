@@ -98,6 +98,55 @@ screenshot quando aplicável
 arquivo/teste que demonstra o comportamento
 ```
 
+### Snapshot de sincronização — POC local (2026-08-28)
+
+A POC arquitetural local já possui implementação observável suficiente para mover as tasks centrais da fundação para `REVIEW`, sem antecipar `DONE` antes dos gates de qualidade.
+
+Evidências já observadas durante a POC:
+
+- `pnpm install` concluído no workspace;
+- Shell, Dashboard, Accounts, Payments, Insurance e BFF executando localmente;
+- navegação Single-SPA entre os quatro MFEs;
+- lifecycle federado carregado em runtime por Module Federation;
+- React/React DOM compartilhados com estratégia singleton e bootstrap assíncrono documentado;
+- runtime manifest carregado pelo Shell antes da orquestração;
+- falha isolada de remote sem derrubar o Shell ou os demais MFEs;
+- seleção de `active`/`stable` e auto-rollback demonstrativo exercitados localmente;
+- release identity visível nos stubs para diagnóstico.
+
+Status sincronizado da POC:
+
+| Task | Estado | Evidência / pendência principal |
+| --- | --- | --- |
+| FMH-002 | `REVIEW` | workspace e scripts existem; aguarda gates completos |
+| FMH-003 | `REVIEW` | configs compartilhadas existem e TypeScript está em `strict` |
+| FMH-004 | `REVIEW` | portas, runtime config e execução local estão definidos; aguarda gates |
+| FMH-005 | `REVIEW` | Shell funcional localmente |
+| FMH-006 | `REVIEW` | registro manual Single-SPA documentado em ADR |
+| FMH-007 | `REVIEW` | Dashboard stub monta e participa da composição |
+| FMH-008 | `REVIEW` | Accounts stub monta e participa da composição |
+| FMH-025 | `REVIEW` | Payments stub monta, expõe versão e participa do rollback POC |
+| FMH-030 | `REVIEW` | Insurance stub monta e participa da composição |
+| FMH-009 | `REVIEW` | fallback/isolamento de remote demonstrado manualmente |
+| FMH-010 | `REVIEW` | Module Federation funciona localmente |
+| FMH-011 | `REVIEW` | shared dependencies e singleton documentados |
+| FMH-012 | `REVIEW` | `./lifecycles` é consumido como módulo federado real |
+| FMH-013 | `REVIEW` | manifest/runtime loader e active/stable funcionam localmente; produção será fechada em FMH-047 |
+| FMH-018 | `DOING` | `/health`, logging e separação app/server existem; configuração tipada ainda precisa ser fechada |
+| FMH-041 | `READY` | próxima implementação da trilha crítica |
+
+Antes de promover as tasks em `REVIEW` para `DONE`, registrar evidência atualizada de:
+
+```text
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+O rollback local é evidência da mecânica arquitetural, mas **não conclui FMH-048**. A task de rollback só fecha após deploy real, smoke pós-deploy e retorno para artefato publicado conhecido.
+
 ---
 
 ## 6. Estratégia de execução — Architecture Validation First
@@ -212,7 +261,7 @@ Depois do gate, os stubs evoluem incrementalmente para os domínios reais.
 
 ## FMH-002 — Inicializar pnpm workspace e Turborepo
 
-**Status:** `READY`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-001
 
@@ -236,7 +285,7 @@ Depois do gate, os stubs evoluem incrementalmente para os domínios reais.
 
 ## FMH-003 — Criar configurações compartilhadas
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-002
 
@@ -257,7 +306,7 @@ packages/typescript-config
 
 ## FMH-004 — Padronizar arquitetura, imports e desenvolvimento local
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-003
 
@@ -281,7 +330,7 @@ packages/typescript-config
 
 ## FMH-005 — Criar Shell / root config
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-003
 
@@ -296,7 +345,7 @@ packages/typescript-config
 
 ## FMH-006 — Definir estratégia de layout Single-SPA
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-005
 
@@ -308,7 +357,7 @@ Comparar registro manual vs `single-spa-layout` e registrar a escolha em SDD/ADR
 
 ## FMH-007 — Criar Dashboard MFE como architecture stub
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-005
 
@@ -329,7 +378,7 @@ cor: azul
 
 ## FMH-008 — Criar Accounts MFE como architecture stub
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-007
 
@@ -349,7 +398,7 @@ cor: verde
 
 ## FMH-009 — Implementar fallback de remote/MFE
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-008
 
@@ -365,7 +414,7 @@ cor: verde
 
 ## FMH-010 — Configurar Webpack 5 e Module Federation
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-008
 
@@ -378,7 +427,7 @@ cor: verde
 
 ## FMH-011 — Definir shared dependencies
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-010
 
@@ -392,7 +441,7 @@ cor: verde
 
 ## FMH-012 — Criar primeiro módulo federado mínimo real
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-010, FMH-011
 
@@ -410,7 +459,7 @@ Provar federation com um caso pequeno e observável antes de qualquer composiç�
 
 ## FMH-013 — Implementar runtime remote configuration
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-010
 
@@ -493,7 +542,7 @@ Provar federation com um caso pequeno e observável antes de qualquer composiç�
 
 ## FMH-018 — Bootstrap do Fastify BFF
 
-**Status:** `BACKLOG`
+**Status:** `DOING`
 
 **Depende de:** FMH-002
 
@@ -599,7 +648,7 @@ INTERNAL_ERROR
 
 ## FMH-025 — Criar Payments MFE como architecture stub
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-008
 
@@ -682,7 +731,7 @@ Somente regras portáveis entram no schema compartilhado. Saldo, existência da 
 
 ## FMH-030 — Criar Insurance MFE como architecture stub
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-008
 
@@ -845,7 +894,7 @@ Definir sessão/autenticação considerando Shell/MFEs/BFF em serviços Render d
 
 ## FMH-041 — Criar pipeline CI
 
-**Status:** `BACKLOG`
+**Status:** `READY`
 
 **Depende de:** FMH-002
 
@@ -1105,7 +1154,7 @@ Esta task não bloqueia a conclusão do Financial MFE Hub. Só deve ser executad
 # Próxima task
 
 ```text
-FMH-002 — Inicializar pnpm workspace e Turborepo
+FMH-041 — Criar pipeline CI
 ```
 
-A implementação começa pela plataforma mínima. O objetivo imediato não é construir uma aplicação financeira grande: é chegar ao **Architecture Gate** com o menor volume de código de produto possível e a maior evidência arquitetural possível.
+A POC local já provou a composição arquitetural mínima. O próximo passo é transformar os gates locais em CI reproduzível e usar essa automação para promover as tasks em `REVIEW` para `DONE` com evidência rastreável, antes de avançar para builds/deploys independentes e infraestrutura Render.

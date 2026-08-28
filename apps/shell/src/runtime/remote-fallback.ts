@@ -25,6 +25,20 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
         throw new Error('[shell] #mfe-root not found while mounting remote fallback');
       }
 
+      // POC demonstrativa: se a active não carregar e existir uma única last stable conhecida,
+      // o Shell seleciona essa stable automaticamente e recarrega a mesma rota.
+      // Em produção, essa decisão será responsabilidade do health/release-control no Render;
+      // o browser não será a autoridade operacional do rollback.
+      if (selectedRelease.channel === 'active' && remote.stable) {
+        console.warn(
+          `[shell] POC auto rollback ${remoteName}: active v${selectedRelease.version} -> stable v${remote.stable.version}`,
+          error,
+        );
+        selectStableRelease(remoteName);
+        window.location.reload();
+        return;
+      }
+
       const section = document.createElement('section');
       section.className = 'shell-runtime-error';
       section.setAttribute('role', 'alert');
@@ -53,7 +67,10 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
       title.textContent = `${remoteName} remote unavailable`;
 
       const description = document.createElement('span');
-      description.textContent = 'O Shell continua operacional e os demais MFEs permanecem disponíveis.';
+      description.textContent =
+        selectedRelease.channel === 'stable'
+          ? 'A active falhou e a last stable também está indisponível. O Shell e os demais MFEs continuam operacionais.'
+          : 'Não existe uma last stable configurada para este MFE. O Shell e os demais MFEs continuam operacionais.';
 
       const metadata = document.createElement('code');
       metadata.textContent = `${selectedRelease.channel} v${selectedRelease.version} · ${selectedRelease.remoteEntry}`;
@@ -67,25 +84,10 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
       retryButton.addEventListener('click', () => window.location.reload());
       actions.append(retryButton);
 
-      // POC demonstrativa: o Shell permite selecionar a última stable conhecida na sessão
-      // para tornar o rollback visível. Em produção, health/release-control no Render deve
-      // decidir a promoção/rollback e publicar o manifest; o browser não será a autoridade.
-      if (selectedRelease.channel === 'active' && remote.stable) {
-        const rollbackButton = document.createElement('button');
-        rollbackButton.type = 'button';
-        rollbackButton.dataset.rollbackTarget = remote.stable.version;
-        rollbackButton.textContent = `Rollback para stable v${remote.stable.version}`;
-        rollbackButton.addEventListener('click', () => {
-          selectStableRelease(remoteName);
-          window.location.reload();
-        });
-        actions.append(rollbackButton);
-      }
-
       if (selectedRelease.channel === 'stable') {
         const activeButton = document.createElement('button');
         activeButton.type = 'button';
-        activeButton.textContent = `Voltar para active v${remote.active.version}`;
+        activeButton.textContent = `Testar active v${remote.active.version} novamente`;
         activeButton.addEventListener('click', () => {
           clearReleaseOverride(remoteName);
           window.location.reload();

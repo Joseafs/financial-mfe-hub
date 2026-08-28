@@ -73,45 +73,35 @@ mount
 
 React, React DOM e demais dependências compartilhadas continuam sujeitos à estratégia de singleton definida para Module Federation.
 
-## Fallback de indisponibilidade
+## Auto rollback demonstrativo no Shell
 
-Se a release selecionada não puder ser carregada:
-
-- o Shell permanece operacional;
-- os demais MFEs continuam navegáveis;
-- a área do remote exibe fallback explícito;
-- versão, canal e URL esperados ficam disponíveis para diagnóstico;
-- o usuário pode tentar novamente;
-- quando existe `stable`, o fallback oferece uma ação explícita de rollback;
-- o erro técnico é registrado no console/log correspondente.
-
-O fallback **não troca silenciosamente** de versão.
-
-## Rollback controlado
-
-Rollback é uma decisão explícita:
+Durante a POC local, se a release `active` não puder ser carregada e existir uma única `stable` conhecida, o Shell troca automaticamente para essa stable usando um override de sessão e recarrega a mesma rota.
 
 ```text
-payments active v1.4.0 ❌
-        ↓
-fallback informa a falha
-        ↓
-operador escolhe rollback
-        ↓
-payments stable v1.3.2 ✅
+/payments
+   ↓
+active v0.0.1 ❌
+   ↓
+Shell detecta falha de carregamento
+   ↓
+seleciona last stable v0.0.0
+   ↓
+recarrega /payments
+   ↓
+stable v0.0.0 ✅
 ```
 
-A rota pública continua a mesma (`/payments`). Somente o artefato remoto selecionado muda.
+A rota pública não muda. Apenas o artefato remoto selecionado muda.
 
-No ambiente local, o Shell usa um override de sessão após o clique de rollback para demonstrar a troca sem alterar o arquivo de configuração em disco. Em produção, a promoção ou rollback deve atualizar a configuração/release publicada de forma rastreável pelo pipeline.
+Esse comportamento é deliberadamente **demonstrativo**. Ele existe para tornar a mecânica de fallback/rollback observável no Architecture Gate sem exigir a infraestrutura completa de health e release-control.
 
-O override local é deliberadamente temporário e existe apenas para tornar o comportamento observável durante o Architecture Gate.
+Se a stable também falhar, ou se o MFE não possuir stable configurada, o Shell exibe o fallback explícito e mantém os demais MFEs operacionais.
+
+O Shell também exibe quando uma rota está operando em `stable` e permite testar novamente a `active`.
 
 ## Limite da POC e health em produção
 
-O rollback presente no Shell é **demonstrativo**. O browser identifica que um remote não carregou e permite selecionar a última `stable` conhecida para tornar a mecânica observável durante a POC.
-
-Em produção, o Shell não será a autoridade para decidir saúde ou promoção de releases.
+Em produção, o browser não será a autoridade para decidir a saúde de uma release nem executar a promoção operacional definitiva.
 
 A arquitetura alvo prevê uma camada operacional publicada no Render, separada da SPA, responsável por consolidar sinais como:
 
@@ -145,45 +135,48 @@ publica manifest atualizado
 
 A implementação dessa API/serviço de health fica fora do escopo imediato da POC do Shell e será tratada junto da infraestrutura, observabilidade e CD no Render.
 
-## Demonstração local inicial
+## Demonstração local
 
-Payments possui uma release estável simulada para exercitar o fluxo:
+Cada MFE possui uma release estável simulada:
 
 ```text
-active  v0.0.1 → localhost:4203
-stable  v0.0.0 → localhost:4213
+dashboard active v0.0.1 → localhost:4201 | stable v0.0.0 → localhost:4211
+accounts  active v0.0.1 → localhost:4202 | stable v0.0.0 → localhost:4212
+payments  active v0.0.1 → localhost:4203 | stable v0.0.0 → localhost:4213
+insurance active v0.0.1 → localhost:4204 | stable v0.0.0 → localhost:4214
 ```
 
-A release stable é iniciada separadamente com:
+As releases stable podem ser iniciadas em conjunto com:
 
 ```bash
-pnpm --filter @financial-mfe/payments dev:stable
+pnpm dev:stable
 ```
 
-Essa release usa o mesmo código-base para validar a mecânica de seleção, isolamento e rollback. No deploy real, `active` e `stable` serão artefatos imutáveis de releases distintas.
+Essas releases usam o mesmo código-base com identidade de versão e porta diferentes para validar a mecânica de seleção, isolamento e rollback. No deploy real, `active` e `stable` serão artefatos imutáveis de releases distintas.
 
 ## Não decisão
 
-Não implementar no browser:
+Não implementar no browser uma cascata arbitrária de versões:
 
 ```text
 v1.4 falha
-→ tenta v1.3 automaticamente
-→ tenta v1.2 automaticamente
+→ tenta v1.3
+→ tenta v1.2
+→ tenta v1.1
 → ...
 ```
 
-Esse comportamento pode esconder falhas, tornar o runtime imprevisível e reduzir a clareza de observabilidade.
+A POC conhece somente `active` e uma única **last stable**. Isso mantém o comportamento determinístico e evita esconder falhas em uma sequência imprevisível de artefatos antigos.
 
 ## Consequências positivas
 
 - remove URLs de remote do código de domínio do Shell;
 - torna release ativa e stable observáveis;
+- demonstra auto rollback sem alterar a rota pública;
 - prepara deploy e rollback independentes;
 - facilita ambientes local/demo/produção;
 - facilita smoke tests por release;
 - mantém falhas isoladas;
-- permite demonstrar rollback sem alterar a rota pública;
 - separa claramente responsabilidade da SPA e responsabilidade operacional de produção.
 
 ## Trade-offs

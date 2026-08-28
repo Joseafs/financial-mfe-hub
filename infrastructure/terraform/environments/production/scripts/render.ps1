@@ -6,8 +6,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../../../..')).Path
 $EnvironmentDirectory = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$EnvFile = Join-Path $EnvironmentDirectory '.env'
+$EnvFile = Join-Path $RepositoryRoot '.env'
 $PlanFile = Join-Path $EnvironmentDirectory 'production.tfplan'
 
 if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
@@ -15,7 +16,7 @@ if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
 }
 
 if (-not (Test-Path $EnvFile)) {
-  throw 'Arquivo .env nao encontrado. Copie .env.example para .env e preencha RENDER_API_KEY e RENDER_OWNER_ID.'
+  throw 'Arquivo .env nao encontrado na raiz do repositorio. Copie .env.example para .env e preencha RENDER_API_KEY e RENDER_OWNER_ID.'
 }
 
 Get-Content $EnvFile | ForEach-Object {
@@ -39,7 +40,7 @@ foreach ($requiredVariable in @('RENDER_API_KEY', 'RENDER_OWNER_ID')) {
   $value = [Environment]::GetEnvironmentVariable($requiredVariable, 'Process')
 
   if ([string]::IsNullOrWhiteSpace($value) -or $value.Contains('REPLACE_ME')) {
-    throw "$requiredVariable nao foi preenchido corretamente no arquivo .env."
+    throw "$requiredVariable nao foi preenchido corretamente no arquivo .env da raiz."
   }
 }
 

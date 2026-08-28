@@ -9,18 +9,18 @@ A criacao dos servicos e feita pelo Terraform. Nenhuma credencial do Render deve
 A partir da raiz do repositorio:
 
 ```powershell
-Copy-Item infrastructure/terraform/environments/production/.env.example infrastructure/terraform/environments/production/.env
-notepad infrastructure/terraform/environments/production/.env
+Copy-Item .env.example .env
+notepad .env
 ```
 
-Preencha somente o arquivo `.env` local:
+Preencha no `.env` da raiz:
 
 ```text
 RENDER_API_KEY=...
 RENDER_OWNER_ID=...
 ```
 
-O provider oficial `render-oss/render` le essas duas variaveis diretamente do ambiente. O `.env` real e ignorado pelo Git.
+O script `render.ps1` carrega esse `.env` da raiz e expõe as variaveis ao processo do Terraform. O `.env` real e ignorado pelo Git.
 
 ## 2. Provisionar
 
@@ -69,7 +69,8 @@ O Terraform retorna as cinco URLs publicas em `frontend_urls`.
 - o Shell possui rewrite `/* -> /index.html` para suportar navegacao Single-SPA por URL direta;
 - o build usa `--no-frozen-lockfile` temporariamente enquanto `pnpm-lock.yaml` ainda nao estiver versionado;
 - estado Terraform, `.env` real e plans permanecem fora do Git;
-- os comandos operacionais de Render ficam expostos como scripts do `package.json`, mantendo a interface de execucao consistente com o restante do monorepo.
+- os comandos operacionais de Render ficam expostos como scripts do `package.json`, mantendo a interface de execucao consistente com o restante do monorepo;
+- existe um unico `.env.example` na raiz para evitar configuracao duplicada entre aplicacao e infraestrutura local.
 
 ## 5. Destruir o ambiente de demo
 

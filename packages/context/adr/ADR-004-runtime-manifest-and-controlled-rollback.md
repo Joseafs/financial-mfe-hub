@@ -107,6 +107,44 @@ No ambiente local, o Shell usa um override de sessão após o clique de rollback
 
 O override local é deliberadamente temporário e existe apenas para tornar o comportamento observável durante o Architecture Gate.
 
+## Limite da POC e health em produção
+
+O rollback presente no Shell é **demonstrativo**. O browser identifica que um remote não carregou e permite selecionar a última `stable` conhecida para tornar a mecânica observável durante a POC.
+
+Em produção, o Shell não será a autoridade para decidir saúde ou promoção de releases.
+
+A arquitetura alvo prevê uma camada operacional publicada no Render, separada da SPA, responsável por consolidar sinais como:
+
+- disponibilidade de `remoteEntry.js`;
+- smoke tests pós-deploy;
+- falhas de bootstrap/mount reportadas;
+- logs e telemetria de runtime;
+- status da release ativa e da última stable conhecida.
+
+Essa camada de health/release-control poderá decidir promoção, marcar uma release como `failed` e executar rollback para a última `stable`, atualizando o manifest de forma rastreável.
+
+Fluxo alvo:
+
+```text
+MFE deploy
+  ↓
+health + smoke + logs
+  ↓
+release-control no Render
+  ↓
+healthy? ── sim ──> mantém/promove active
+   │
+   não
+   ↓
+marca failed
+   ↓
+restaura last stable
+   ↓
+publica manifest atualizado
+```
+
+A implementação dessa API/serviço de health fica fora do escopo imediato da POC do Shell e será tratada junto da infraestrutura, observabilidade e CD no Render.
+
 ## Demonstração local inicial
 
 Payments possui uma release estável simulada para exercitar o fluxo:
@@ -126,7 +164,7 @@ Essa release usa o mesmo código-base para validar a mecânica de seleção, iso
 
 ## Não decisão
 
-Não implementar:
+Não implementar no browser:
 
 ```text
 v1.4 falha
@@ -145,7 +183,8 @@ Esse comportamento pode esconder falhas, tornar o runtime imprevisível e reduzi
 - facilita ambientes local/demo/produção;
 - facilita smoke tests por release;
 - mantém falhas isoladas;
-- permite demonstrar rollback sem alterar a rota pública.
+- permite demonstrar rollback sem alterar a rota pública;
+- separa claramente responsabilidade da SPA e responsabilidade operacional de produção.
 
 ## Trade-offs
 
@@ -153,6 +192,7 @@ Esse comportamento pode esconder falhas, tornar o runtime imprevisível e reduzi
 - configuração inválida pode impedir o início da composição dos MFEs;
 - cache do manifest e de `remoteEntry.js` precisa ser tratado explicitamente no deploy;
 - promoção/rollback do manifest exige processo operacional rastreável;
-- o demo local não substitui a validação futura com artefatos imutáveis realmente publicados.
+- o demo local não substitui a validação futura com artefatos imutáveis realmente publicados;
+- health/release-control adiciona uma peça operacional extra na infraestrutura final.
 
 Esses trade-offs são aceitos porque o runtime manifest reduz acoplamento entre Shell e releases dos MFEs e cria uma fronteira operacional explícita para deploy independente.

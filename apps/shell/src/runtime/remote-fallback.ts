@@ -67,6 +67,9 @@ export function createRemoteFallback(remoteName: RemoteName, error: unknown): Re
       retryButton.addEventListener('click', () => window.location.reload());
       actions.append(retryButton);
 
+      // POC demonstrativa: o Shell permite selecionar a última stable conhecida na sessão
+      // para tornar o rollback visível. Em produção, health/release-control no Render deve
+      // decidir a promoção/rollback e publicar o manifest; o browser não será a autoridade.
       if (selectedRelease.channel === 'active' && remote.stable) {
         const rollbackButton = document.createElement('button');
         rollbackButton.type = 'button';

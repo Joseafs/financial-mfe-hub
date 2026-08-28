@@ -1,0 +1,7 @@
+{
+  "extends": "@financial-mfe/typescript-config/node.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

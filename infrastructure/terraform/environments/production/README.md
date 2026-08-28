@@ -1,6 +1,6 @@
 # Ambiente production/demo no Render
 
-Este ambiente provisiona o **Shell** e os quatro **Micro Frontends** como Render Static Sites independentes.
+Este ambiente provisiona o **Shell** e os quatro **Micro Frontends** como Render Static Sites independentes e o **Fastify BFF** como Render Web Service.
 
 A criacao dos servicos e feita pelo Terraform. Nenhuma credencial do Render deve ser versionada.
 
@@ -32,7 +32,7 @@ pnpm render:validate
 pnpm render:plan
 ```
 
-Revise o plan. O esperado na primeira execucao e a criacao de cinco Static Sites:
+O ambiente possui os seguintes recursos:
 
 ```text
 financial-mfe-hub-production-shell
@@ -40,9 +40,14 @@ financial-mfe-hub-production-dashboard
 financial-mfe-hub-production-accounts
 financial-mfe-hub-production-payments
 financial-mfe-hub-production-insurance
+financial-mfe-hub-production-bff
 ```
 
-Se o plan estiver correto:
+Os cinco frontends sao Static Sites. O BFF e um Web Service Node com health check em `/health`.
+
+O plano padrao do BFF esta configurado como `starter` e a regiao como `virginia`. **Revise a cobranca vigente da sua conta Render antes de executar `apply`**, pois planos de Web Service podem gerar custo. Esses valores podem ser alterados pelas variaveis Terraform `bff_plan` e `bff_region`.
+
+Se o plan estiver correto e o custo estiver deliberadamente aceito:
 
 ```powershell
 pnpm render:apply
@@ -58,15 +63,25 @@ Depois do apply:
 pnpm render:output
 ```
 
-O Terraform retorna as cinco URLs publicas em `frontend_urls`.
+O Terraform retorna `frontend_urls`, `frontend_ids`, `bff_url`, `bff_id` e o `service_prefix`.
+
+Valide o BFF em:
+
+```text
+<BFF_URL>/health
+```
+
+O esperado e um JSON com `status: "ok"`, identificacao do servico, ambiente `production` e timestamp.
 
 ## 4. Decisoes desta etapa
 
 - cada frontend e um recurso Render independente;
+- o BFF e um Render Web Service independente;
 - `auto_deploy = false` enquanto a estrategia de CD nao for fechada na FMH-046;
 - cada servico executa somente o build do proprio package;
 - build filters incluem o app e os packages/configs compartilhados do monorepo;
 - o Shell possui rewrite `/* -> /index.html` para suportar navegacao Single-SPA por URL direta;
+- o BFF usa `HOST=0.0.0.0`, recebe `PORT` do Render e valida configuracao no bootstrap;
 - o build usa `--no-frozen-lockfile` temporariamente enquanto `pnpm-lock.yaml` ainda nao estiver versionado;
 - estado Terraform, `.env` real e plans permanecem fora do Git;
 - os comandos operacionais de Render ficam expostos como scripts do `package.json`, mantendo a interface de execucao consistente com o restante do monorepo;

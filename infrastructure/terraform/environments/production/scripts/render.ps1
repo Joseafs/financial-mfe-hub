@@ -61,14 +61,14 @@ function Invoke-Terraform {
 
 switch ($Action) {
   'init' {
-    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'init')
+    Invoke-Terraform -Arguments @("-chdir=$EnvironmentDirectory", 'init')
   }
   'validate' {
-    Invoke-Terraform @('fmt', '-check', '-recursive', $TerraformRoot)
-    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'validate')
+    Invoke-Terraform -Arguments @('fmt', '-check', '-recursive', $TerraformRoot)
+    Invoke-Terraform -Arguments @("-chdir=$EnvironmentDirectory", 'validate')
   }
   'plan' {
-    Invoke-Terraform @(
+    Invoke-Terraform -Arguments @(
       "-chdir=$EnvironmentDirectory",
       'plan',
       '-input=false',
@@ -84,12 +84,12 @@ switch ($Action) {
       throw 'production.tfplan nao encontrado. Execute primeiro: pnpm render:plan'
     }
 
-    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'apply', $PlanFile)
+    Invoke-Terraform -Arguments @("-chdir=$EnvironmentDirectory", 'apply', $PlanFile)
   }
   'output' {
-    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'output', 'frontend_urls')
+    Invoke-Terraform -Arguments @("-chdir=$EnvironmentDirectory", 'output')
   }
   'destroy' {
-    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'destroy')
+    Invoke-Terraform -Arguments @("-chdir=$EnvironmentDirectory", 'destroy')
   }
 }

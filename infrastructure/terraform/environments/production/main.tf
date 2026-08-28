@@ -90,3 +90,30 @@ module "frontend" {
     } : {}
   )
 }
+
+module "bff" {
+  source = "../../modules/web-service"
+
+  name              = "${module.shared.service_prefix}-bff"
+  repo_url          = module.shared.repository_url
+  branch            = module.shared.branch
+  region            = var.bff_region
+  plan              = var.bff_plan
+  build_command     = "corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --no-frozen-lockfile && pnpm --filter '@financial-mfe/bff' build"
+  start_command     = "corepack pnpm --filter '@financial-mfe/bff' start"
+  health_check_path = "/health"
+  auto_deploy       = false
+  build_paths       = concat(["apps/bff/**"], module.shared.shared_build_paths)
+
+  env_vars = {
+    FMH_ENV = {
+      value = "production"
+    }
+    HOST = {
+      value = "0.0.0.0"
+    }
+    LOG_LEVEL = {
+      value = "info"
+    }
+  }
+}

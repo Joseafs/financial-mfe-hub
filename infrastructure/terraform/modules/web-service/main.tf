@@ -4,6 +4,7 @@ resource "render_web_service" "this" {
   region            = var.region
   start_command     = var.start_command
   health_check_path = var.health_check_path
+  env_vars          = var.env_vars
 
   runtime_source = {
     native_runtime = {

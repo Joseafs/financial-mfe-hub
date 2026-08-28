@@ -16,3 +16,13 @@ output "frontend_ids" {
     for name, service in module.frontend : name => service.id
   }
 }
+
+output "bff_url" {
+  description = "Public URL of the Fastify BFF Render Web Service."
+  value       = module.bff.url
+}
+
+output "bff_id" {
+  description = "Render service ID of the Fastify BFF."
+  value       = module.bff.id
+}

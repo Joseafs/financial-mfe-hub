@@ -18,9 +18,21 @@ concurrency:
 
 jobs:
   quality-gates:
-    name: Quality gates
+    name: Gate · ${{ matrix.label }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Format
+            command: format:check
+          - label: Lint
+            command: lint
+          - label: Typecheck
+            command: typecheck
+          - label: Tests
+            command: test
 
     steps:
       - name: Checkout
@@ -38,23 +50,26 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
+        id: install
         shell: bash
         run: |
           if [[ -f pnpm-lock.yaml ]]; then
             pnpm install --frozen-lockfile
+            echo "generated_lockfile=false" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::pnpm-lock.yaml ainda nao esta versionado; usando --no-frozen-lockfile temporariamente."
             pnpm install --no-frozen-lockfile
+            echo "generated_lockfile=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Format check
-        run: pnpm format:check
+      - name: Run ${{ matrix.label }}
+        run: pnpm ${{ matrix.command }}
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Tests
-        run: pnpm test
+      - name: Export generated lockfile
+        if: ${{ always() && matrix.command == 'test' && steps.install.outputs.generated_lockfile == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-pnpm-lock-${{ github.sha }}
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 1

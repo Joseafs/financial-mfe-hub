@@ -2,9 +2,9 @@
 
 ## 1. Objetivo
 
-Este documento é o backlog técnico canônico do projeto.
+Este documento é o backlog técnico canônico do **Financial MFE Hub**.
 
-As tasks devem ser executadas de forma incremental, mantendo o repositório sempre em um estado compreensível e validável.
+As tasks devem ser executadas de forma incremental, mantendo o repositório sempre compreensível, validável e coerente com o [`SDD.md`](./SDD.md).
 
 Prefixo oficial:
 
@@ -12,10 +12,18 @@ Prefixo oficial:
 FMH
 ```
 
-Exemplo:
+Padrão de commit:
 
 ```text
-FMH-012
+<tipo>: <TASK-ID> - <descrição em pt-BR>
+```
+
+Exemplos:
+
+```text
+feat: FMH-002 - inicializa workspace pnpm e turborepo
+fix: FMH-029 - corrige reenvio da transferência
+refactor: FMH-018 - separa bootstrap do fastify
 ```
 
 ---
@@ -24,12 +32,20 @@ FMH-012
 
 | Estado | Significado |
 | --- | --- |
-| `BACKLOG` | identificada, ainda não pronta para implementação |
+| `BACKLOG` | identificada, ainda não pronta para execução |
 | `READY` | escopo, dependências e aceite definidos |
 | `DOING` | implementação ativa |
-| `REVIEW` | implementação concluída aguardando revisão/validação |
-| `BLOCKED` | impedimento explícito |
+| `REVIEW` | implementação concluída aguardando validação |
+| `BLOCKED` | impedimento explícito documentado |
 | `DONE` | aceite e Definition of Done atendidos |
+
+Fluxo:
+
+```text
+BACKLOG -> READY -> DOING -> REVIEW -> DONE
+                     |
+                     └-> BLOCKED -> READY
+```
 
 ---
 
@@ -42,7 +58,7 @@ Uma task está `READY` quando:
 - dependências estão conhecidas;
 - decisões arquiteturais relevantes estão registradas;
 - critérios de aceite são verificáveis;
-- não depende de uma decisão ainda indefinida sem estar explicitamente bloqueada.
+- riscos ou questões abertas estão explícitos.
 
 ---
 
@@ -58,64 +74,67 @@ Uma task está `DONE` quando, quando aplicável:
 - não há segredo versionado;
 - documentação afetada foi atualizada;
 - critérios de aceite possuem evidência;
-- nenhuma regra temporária ficou sem registro;
-- mudanças arquiteturais foram refletidas no SDD.
+- mudanças arquiteturais foram refletidas no SDD/ADR;
+- o commit referencia a task correspondente.
 
 ---
 
-## 5. Formato de evidência
+## 5. Evidências
 
-Cada task concluída deve poder registrar algo semelhante a:
+Exemplos de evidência:
 
 ```text
-Evidências:
-- pnpm lint
-- pnpm typecheck
-- pnpm test
-- pnpm build
-- screenshot/URL quando aplicável
-- arquivo ou teste que demonstra o comportamento
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm e2e
+terraform validate
+terraform plan
+URL publicada
+screenshot quando aplicável
+arquivo/teste que demonstra o comportamento
 ```
 
 ---
 
 # Fase 0 — Fundação documental
 
-## FMH-001 — Definir visão arquitetural inicial
+## FMH-001 — Consolidar SDD 1.0 e documentação base
 
 **Status:** `DONE`
-
-### Objetivo
-
-Registrar propósito, stack inicial, fronteiras, estratégia de MFE, BFF, contratos, testes e evolução.
 
 ### Entregas
 
 - `README.md` em PT-BR;
+- `README.en.md` em inglês;
 - `packages/context/README.md`;
 - `packages/context/SDD.md`;
-- `packages/context/PROJECT-TASKS.md`.
+- `packages/context/PROJECT-TASKS.md`;
+- arquitetura principal fiel a **Terraform + Render**;
+- AWS documentada somente como trilha opcional comparativa;
+- Formik + Zod + Context API definidos;
+- i18n definido com PT-BR padrão e inglês alternativo;
+- fluxo de tasks e commits definido.
 
 ### Aceite
 
-- documentação descreve Single-SPA e Module Federation separadamente;
-- deixa claro que Turborepo organiza o workspace, mas não substitui MFE;
-- define Zod compartilhado com validação autoritativa no BFF;
-- define fluxo incremental de tasks.
+- SDD diferencia Single-SPA, Module Federation e Turborepo;
+- Render é a infraestrutura principal do case;
+- Terraform usa o provider `render-oss/render` como referência principal;
+- AWS não bloqueia a conclusão do case;
+- README PT-BR e inglês refletem a mesma arquitetura;
+- backlog está sincronizado com o SDD.
 
 ---
 
-# Fase 1 — Bootstrap do workspace
+# Fase 1 — Fundação do workspace
 
-## FMH-002 — Inicializar pnpm workspace
+## FMH-002 — Inicializar pnpm workspace e Turborepo
 
 **Status:** `READY`
 
 **Depende de:** FMH-001
-
-### Objetivo
-
-Criar a base mínima do monorepo.
 
 ### Escopo
 
@@ -130,7 +149,7 @@ Criar a base mínima do monorepo.
 
 - `pnpm install` executa sem erro;
 - workspace reconhece `apps/*` e `packages/*`;
-- scripts raiz possuem estrutura inicial para `lint`, `typecheck`, `test` e `build`.
+- existem pipelines iniciais de `lint`, `typecheck`, `test` e `build`.
 
 ---
 
@@ -139,10 +158,6 @@ Criar a base mínima do monorepo.
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-002
-
-### Objetivo
-
-Padronizar TypeScript e lint sem duplicação entre aplicações.
 
 ### Entregas
 
@@ -153,28 +168,31 @@ packages/typescript-config
 
 ### Aceite
 
-- apps conseguem estender configuração comum;
-- TypeScript usa modo estrito;
-- regras não dependem de configuração local duplicada.
+- TypeScript strict;
+- apps/packages estendem configs comuns;
+- regras não são duplicadas desnecessariamente.
 
 ---
 
-## FMH-004 — Definir convenções de arquitetura e imports
+## FMH-004 — Padronizar arquitetura, imports e desenvolvimento local
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-003
 
-### Objetivo
+### Escopo
 
-Evitar dependências circulares e imports entre internals de domínios.
+- aliases e entrypoints públicos;
+- restrição de imports entre internals de apps;
+- convenção de portas locais;
+- comando raiz para subir Shell, MFEs e BFF;
+- configuração local de URLs dos remotes.
 
 ### Aceite
 
-- aliases definidos;
-- regra de imports entre apps documentada;
-- packages públicos possuem entrypoints explícitos;
-- nenhum MFE pode importar `src` interno de outro MFE.
+- nenhum MFE importa `src` interno de outro;
+- `pnpm dev` ou equivalente inicia o ambiente local de forma reproduzível;
+- Shell consegue resolver remotes locais por configuração.
 
 ---
 
@@ -186,20 +204,15 @@ Evitar dependências circulares e imports entre internals de domínios.
 
 **Depende de:** FMH-003
 
-### Objetivo
-
-Criar o bootstrap principal com Single-SPA.
-
 ### Aceite
 
-- root config inicia localmente;
-- lifecycle do Single-SPA está configurado;
-- existe rota raiz funcional;
-- Shell não contém regra de domínio.
+- Shell inicia localmente;
+- Single-SPA possui bootstrap funcional;
+- layout global não contém regra de domínio.
 
 ---
 
-## FMH-006 — Decidir estratégia de layout Single-SPA
+## FMH-006 — Definir estratégia de layout Single-SPA
 
 **Status:** `BACKLOG`
 
@@ -207,15 +220,7 @@ Criar o bootstrap principal com Single-SPA.
 
 ### Decisão
 
-Comparar:
-
-- registro manual;
-- `single-spa-layout`.
-
-### Aceite
-
-- decisão registrada no SDD;
-- justificativa considera clareza, aprendizado e complexidade.
+Comparar registro manual vs `single-spa-layout` e registrar a escolha em SDD/ADR.
 
 ---
 
@@ -225,15 +230,10 @@ Comparar:
 
 **Depende de:** FMH-005
 
-### Objetivo
-
-Registrar e montar o primeiro MFE real.
-
 ### Aceite
 
 - `bootstrap`, `mount` e `unmount` funcionam;
-- Shell ativa o MFE em `/dashboard`;
-- navegação para fora desmonta corretamente o MFE.
+- `/dashboard` possui owner explícito.
 
 ---
 
@@ -243,15 +243,10 @@ Registrar e montar o primeiro MFE real.
 
 **Depende de:** FMH-007
 
-### Objetivo
-
-Validar que a arquitetura suporta mais de um MFE independente.
-
 ### Aceite
 
-- `/accounts` possui owner claro;
-- navegação Dashboard -> Accounts funciona;
-- lifecycles são independentes.
+- `/accounts` possui owner explícito;
+- navegação Dashboard -> Accounts monta/desmonta corretamente.
 
 ---
 
@@ -261,16 +256,11 @@ Validar que a arquitetura suporta mais de um MFE independente.
 
 **Depende de:** FMH-008
 
-### Objetivo
-
-Evitar queda global quando um MFE falhar.
-
 ### Aceite
 
-- falha do Accounts não derruba o Shell;
-- fallback é exibido;
-- retry é possível quando aplicável;
-- erro possui contexto suficiente para log.
+- falha de um MFE não derruba o Shell;
+- existe fallback e retry quando aplicável;
+- erro registra MFE, rota e ambiente.
 
 ---
 
@@ -282,15 +272,10 @@ Evitar queda global quando um MFE falhar.
 
 **Depende de:** FMH-008
 
-### Objetivo
-
-Habilitar exposição e consumo de módulos em runtime.
-
 ### Aceite
 
 - host e remote funcionam localmente;
-- remoteEntry é carregado em runtime;
-- configuração fica documentada.
+- `remoteEntry` é carregado em runtime.
 
 ---
 
@@ -300,15 +285,11 @@ Habilitar exposição e consumo de módulos em runtime.
 
 **Depende de:** FMH-010
 
-### Objetivo
-
-Evitar duplicação problemática de dependências de runtime.
-
 ### Aceite
 
-- React e React DOM possuem estratégia explícita;
-- configuração não contém compartilhamento excessivo;
-- trade-offs registrados no SDD.
+- React/React DOM possuem estratégia explícita de singleton;
+- compartilhamento excessivo é evitado;
+- trade-offs ficam documentados.
 
 ---
 
@@ -318,15 +299,10 @@ Evitar duplicação problemática de dependências de runtime.
 
 **Depende de:** FMH-010, FMH-011
 
-### Objetivo
-
-Demonstrar um caso de uso real de Module Federation, não apenas configuração vazia.
-
 ### Aceite
 
-- um remote expõe módulo público;
-- outro consumidor carrega o módulo em runtime;
-- contrato público é documentado;
+- existe caso de uso real, não apenas configuração vazia;
+- contrato público do módulo é explícito;
 - consumidor não acessa internals do remote.
 
 ---
@@ -337,15 +313,11 @@ Demonstrar um caso de uso real de Module Federation, não apenas configuração 
 
 **Depende de:** FMH-010
 
-### Objetivo
-
-Remover URLs de remotes hardcoded do código de domínio.
-
 ### Aceite
 
-- remotes podem variar por ambiente;
-- Shell resolve configuração centralmente;
-- configuração inválida possui fallback compreensível.
+- URLs dos remotes não ficam hardcoded em código de domínio;
+- configuração varia entre `local` e `production/demo`;
+- configuração inválida possui fallback.
 
 ---
 
@@ -357,15 +329,10 @@ Remover URLs de remotes hardcoded do código de domínio.
 
 **Depende de:** FMH-003
 
-### Objetivo
-
-Criar a fonte canônica de contratos Zod.
-
 ### Aceite
 
-- package possui exports explícitos;
-- tipos são inferidos a partir dos schemas;
-- não existe dependência de React, Fastify ou persistência.
+- schemas Zod e tipos inferidos possuem exports públicos;
+- package não depende de React, Fastify ou persistência.
 
 ---
 
@@ -375,19 +342,15 @@ Criar a fonte canônica de contratos Zod.
 
 **Depende de:** FMH-003
 
-### Objetivo
-
-Criar biblioteca visual compartilhada e sem regras de domínio.
-
 ### Aceite
 
-- primeiro conjunto de primitives existe;
-- Tailwind possui estratégia compartilhada;
-- componentes são acessíveis por entrypoint público.
+- primitives visuais reutilizáveis;
+- Tailwind/tokens possuem estratégia comum;
+- componentes não carregam regra de domínio.
 
 ---
 
-## FMH-016 — Criar Storybook para UI
+## FMH-016 — Criar Storybook da UI
 
 **Status:** `BACKLOG`
 
@@ -396,20 +359,30 @@ Criar biblioteca visual compartilhada e sem regras de domínio.
 ### Aceite
 
 - Storybook inicia isoladamente;
-- componentes principais possuem stories;
-- estados relevantes são demonstrados.
+- componentes principais possuem stories e estados relevantes.
 
 ---
 
-## FMH-017 — Criar `packages/auth`
+## FMH-017 — Criar `packages/i18n`
 
 **Status:** `BACKLOG`
 
-**Depende de:** FMH-014
+**Depende de:** FMH-003
 
-### Objetivo
+### Escopo
 
-Definir interfaces e primitivas compartilhadas de autenticação sem acoplar os MFEs à implementação do BFF.
+- i18next + react-i18next;
+- `pt-BR` padrão;
+- `en` alternativo;
+- contrato público de mudança de idioma;
+- namespaces por MFE.
+
+### Aceite
+
+- Shell coordena locale atual;
+- MFEs mantêm namespaces próprios;
+- fallback explícito para `pt-BR`;
+- `<html lang>` acompanha o locale.
 
 ---
 
@@ -421,16 +394,12 @@ Definir interfaces e primitivas compartilhadas de autenticação sem acoplar os 
 
 **Depende de:** FMH-002
 
-### Objetivo
-
-Criar API mínima e saudável.
-
 ### Aceite
 
 - `/health` responde;
 - configuração é tipada;
-- erros de bootstrap falham rápido;
-- logging estruturado está habilitado.
+- logging estruturado está habilitado;
+- `app.ts` e `server.ts` possuem responsabilidades separadas.
 
 ---
 
@@ -440,15 +409,11 @@ Criar API mínima e saudável.
 
 **Depende de:** FMH-014, FMH-018
 
-### Objetivo
-
-Validar requests com os mesmos contratos consumidos pelo front.
-
 ### Aceite
 
-- request inválido é rejeitado no BFF;
-- frontend não é considerado fonte confiável;
-- resposta de erro possui formato consistente.
+- requests não confiáveis são revalidados;
+- erros de contrato possuem formato consistente;
+- OpenAPI pode derivar das definições da API quando viável.
 
 ---
 
@@ -458,17 +423,17 @@ Validar requests com os mesmos contratos consumidos pelo front.
 
 **Depende de:** FMH-018
 
-### Aceite
+### Códigos mínimos
 
-Implementar códigos estáveis para, no mínimo:
-
-- validação;
-- não autenticado;
-- proibido;
-- não encontrado;
-- conflito;
-- indisponibilidade downstream;
-- erro interno.
+```text
+VALIDATION_ERROR
+UNAUTHENTICATED
+FORBIDDEN
+NOT_FOUND
+CONFLICT
+DOWNSTREAM_UNAVAILABLE
+INTERNAL_ERROR
+```
 
 ---
 
@@ -480,13 +445,12 @@ Implementar códigos estáveis para, no mínimo:
 
 ### Aceite
 
-- todo request recebe/propaga identificador;
-- logs incluem correlation id;
-- erro devolvido pode incluir `requestId` seguro.
+- requests possuem correlation/request id;
+- logs permitem correlacionar MFE, endpoint e falha.
 
 ---
 
-# Fase 6 — Domínio Accounts
+# Fase 6 — Accounts
 
 ## FMH-022 — Implementar contratos de Accounts
 
@@ -498,7 +462,8 @@ Implementar códigos estáveis para, no mínimo:
 
 - account summary;
 - card summary;
-- limits.
+- limits;
+- statement fictício.
 
 ---
 
@@ -507,11 +472,6 @@ Implementar códigos estáveis para, no mínimo:
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-019, FMH-022
-
-### Aceite
-
-- endpoints validam respostas e requests relevantes;
-- serviço fictício fica isolado da camada HTTP.
 
 ---
 
@@ -524,24 +484,17 @@ Implementar códigos estáveis para, no mínimo:
 ### Aceite
 
 - TanStack Query gerencia server state;
-- loading, empty e error states existem;
-- MFE não conhece detalhes do serviço downstream.
+- loading, empty e error states existem.
 
 ---
 
-# Fase 7 — Domínio Payments
+# Fase 7 — Payments
 
 ## FMH-025 — Criar Payments MFE
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-008
-
-### Aceite
-
-- `/payments` registrado no Shell;
-- lifecycle independente;
-- fallback compatível com padrão global.
 
 ---
 
@@ -551,34 +504,30 @@ Implementar códigos estáveis para, no mínimo:
 
 **Depende de:** FMH-014
 
-### Escopo
+### Regra
 
-Schema deve cobrir apenas regras portáveis, como:
-
-- conta destino obrigatória;
-- valor positivo;
-- descrição limitada;
-- campos opcionais explícitos.
-
-Saldo e autorização não pertencem ao schema compartilhado.
+Somente regras portáveis entram no schema compartilhado. Saldo, existência da conta e autorização permanecem no servidor.
 
 ---
 
-## FMH-027 — Implementar formulário de transferência
+## FMH-027 — Implementar formulário Formik + Zod
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-025, FMH-026
 
-### Decisão necessária
+### Escopo
 
-Escolher React Hook Form ou Formik e registrar justificativa no SDD.
+- Formik como biblioteca padrão;
+- adapter `ZodError -> FormikErrors`;
+- `FormikProvider` / `useFormikContext` quando útil;
+- Context API restrita ao owner do fluxo.
 
 ### Aceite
 
-- formulário reutiliza schema Zod;
-- mensagens são ligadas aos campos;
-- não existe duplicação manual das mesmas regras.
+- não existe duplicação manual das regras do schema;
+- erros de campos e submit são acessíveis;
+- nenhum MegaContext cross-MFE é criado.
 
 ---
 
@@ -590,9 +539,8 @@ Escolher React Hook Form ou Formik e registrar justificativa no SDD.
 
 ### Aceite
 
-- BFF revalida o payload;
-- saldo é validado exclusivamente no servidor;
-- autorização é validada exclusivamente no servidor;
+- BFF revalida payload;
+- saldo e autorização são regras exclusivamente server-side;
 - erros usam códigos estáveis.
 
 ---
@@ -605,24 +553,19 @@ Escolher React Hook Form ou Formik e registrar justificativa no SDD.
 
 ### Aceite
 
-- sucesso possui feedback;
-- erros de campo são distintos de erros de domínio;
+- sucesso e falha possuem feedback;
 - double submit é impedido;
 - loading state é explícito.
 
 ---
 
-# Fase 8 — Insurance e Dashboard
+# Fase 8 — Insurance e Dashboard agregado
 
 ## FMH-030 — Criar Insurance MFE
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-008
-
-### Objetivo
-
-Adicionar terceiro domínio independente e validar escalabilidade da composição.
 
 ---
 
@@ -632,14 +575,10 @@ Adicionar terceiro domínio independente e validar escalabilidade da composiçã
 
 **Depende de:** FMH-024, FMH-029, FMH-030
 
-### Objetivo
-
-Exibir visão consolidada sem importar internals de outros MFEs.
-
 ### Aceite
 
-- dados agregados vêm de contrato/BFF;
-- Dashboard não acessa stores internas de outros MFEs.
+- dados agregados vêm do BFF/contratos públicos;
+- Dashboard não importa stores/internals de outros MFEs.
 
 ---
 
@@ -649,12 +588,13 @@ Exibir visão consolidada sem importar internals de outros MFEs.
 
 **Status:** `BACKLOG`
 
-### Aceite
+### Padrão
 
-- `test` como padrão dos testes;
-- testes usam `screen` para queries;
-- helpers de render evitam repetição;
-- factories podem utilizar Faker quando dados aleatórios melhorarem robustez.
+- usar `test`;
+- nomes iniciam com `should`;
+- queries via `screen`;
+- helper de render reutilizável;
+- Faker quando agregar robustez.
 
 ---
 
@@ -664,28 +604,21 @@ Exibir visão consolidada sem importar internals de outros MFEs.
 
 **Depende de:** FMH-032
 
-### Aceite
-
-Cenários mínimos:
+### Cenários mínimos
 
 - sucesso;
 - validação;
-- 403;
+- 401/403;
 - 500/503;
 - timeout/resposta lenta.
 
 ---
 
-## FMH-034 — Testar BFF com Fastify.inject
+## FMH-034 — Testar BFF com `Fastify.inject()`
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-019
-
-### Aceite
-
-- endpoints críticos possuem testes sem servidor externo;
-- validação, status e erro são cobertos.
 
 ---
 
@@ -697,13 +630,12 @@ Cenários mínimos:
 
 ### Aceite
 
-- jornada atravessa pelo menos dois MFEs;
-- navegação e transferência fictícia são verificadas;
-- teste de fallback de MFE é incluído.
+- ao menos uma jornada atravessa múltiplos MFEs;
+- cobre navegação, formulário, sucesso e falha de remote.
 
 ---
 
-# Fase 10 — Performance e observabilidade
+# Fase 10 — Performance, resiliência e observabilidade
 
 ## FMH-036 — Medir bundles e dependências duplicadas
 
@@ -711,21 +643,13 @@ Cenários mínimos:
 
 **Depende de:** FMH-012
 
-### Aceite
-
-- bundles analisados;
-- duplicação de React verificada;
-- resultado documentado.
-
 ---
 
-## FMH-037 — Instrumentar Web Vitals
+## FMH-037 — Instrumentar Core Web Vitals
 
 **Status:** `BACKLOG`
 
-### Aceite
-
-Registrar pelo menos:
+### Métricas
 
 - LCP;
 - INP;
@@ -733,66 +657,64 @@ Registrar pelo menos:
 
 ---
 
-## FMH-038 — Padronizar logging de falha de MFE
+## FMH-038 — Padronizar logging e falhas de MFE/BFF
 
 **Status:** `BACKLOG`
 
-**Depende de:** FMH-009
+**Depende de:** FMH-009, FMH-021
 
 ### Aceite
 
-Log deve identificar:
-
-- MFE;
-- rota;
-- erro;
-- momento;
-- ambiente.
+- logs identificam MFE, rota, ambiente e request id;
+- health check e logs do Render são documentados.
 
 ---
 
-# Fase 11 — Segurança
+# Fase 11 — Autenticação e segurança
 
-## FMH-039 — Implementar estratégia de autenticação da POC
+## FMH-039 — Criar `packages/auth` e estratégia de sessão
 
 **Status:** `BACKLOG`
 
-**Depende de:** FMH-017, FMH-018
+**Depende de:** FMH-014, FMH-018
+
+### Decisão
+
+Definir sessão/autenticação considerando Shell/MFEs/BFF em serviços Render distintos.
 
 ### Aceite
 
-- decisão documentada;
-- tokens sensíveis não ficam em localStorage;
-- BFF é autoridade de autenticação/autorização.
+- tokens sensíveis não ficam em `localStorage`;
+- cookie/CORS/credentials/SameSite possuem estratégia explícita;
+- autorização real permanece no BFF.
 
 ---
 
-## FMH-040 — Aplicar baseline de segurança no BFF
+## FMH-040 — Aplicar baseline de segurança
 
 **Status:** `BACKLOG`
 
-**Depende de:** FMH-018
+**Depende de:** FMH-018, FMH-039
 
 ### Escopo
 
-- CORS;
-- headers;
-- cookies quando utilizados;
-- rate limit quando aplicável;
+- CORS restrito;
+- security headers;
 - redaction de logs;
-- validação de envs.
+- env validation;
+- rate limit quando aplicável;
+- CSP e allowlist das origens de remotes;
+- secrets fora do Git.
 
 ---
 
-# Fase 12 — CI/CD
+# Fase 12 — CI/CD, Render e Terraform
 
 ## FMH-041 — Criar pipeline CI
 
 **Status:** `BACKLOG`
 
-### Aceite
-
-GitHub Actions executa:
+### Gates
 
 ```text
 pnpm install --frozen-lockfile
@@ -812,128 +734,196 @@ pnpm build
 
 ### Aceite
 
-Cada app pode ser buildada isoladamente pelo Turborepo.
+Cada app pode ser buildada isoladamente via Turborepo.
 
 ---
 
-## FMH-043 — Definir primeira estratégia de deploy
+## FMH-043 — Inicializar Terraform para Render
 
 **Status:** `BACKLOG`
 
-**Depende de:** FMH-013, FMH-042
+**Depende de:** FMH-042
 
-### Objetivo
+### Escopo
 
-Publicar Shell, MFEs e BFF de forma independente.
+- provider `render-oss/render`;
+- `infrastructure/terraform`;
+- módulos `static-site`, `web-service` e `shared`;
+- environment `production`;
+- `.tfstate` fora do Git.
 
 ### Aceite
 
-- cada unidade possui URL/deployment próprio;
-- remotes são resolvidos por ambiente;
-- README registra demonstração pública.
+```text
+terraform fmt -check
+terraform validate
+terraform plan
+```
 
 ---
 
-# Fase 13 — AWS opcional
-
-## FMH-044 — Publicar assets MFE em S3 + CloudFront
+## FMH-044 — Provisionar Shell e MFEs como Render Static Sites
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-043
 
-### Objetivo
+### Aceite
 
-Demonstrar distribuição real de bundles/remotes via CDN.
-
----
-
-## FMH-045 — Explorar CloudWatch
-
-**Status:** `BACKLOG`
-
-**Depende de:** FMH-043
-
-### Objetivo
-
-Registrar logs/métricas da camada de backend em cenário AWS.
+- Shell e cada MFE possuem serviço independente;
+- URLs necessárias podem alimentar runtime config;
+- deploy de um MFE não exige deploy dos demais.
 
 ---
 
-## FMH-046 — Avaliar caso de uso Lambda
+## FMH-045 — Provisionar Fastify BFF como Render Web Service
 
 **Status:** `BACKLOG`
 
-### Regra
-
-Não implementar Lambda apenas para citar AWS. Primeiro documentar caso de uso que justifique a função.
-
----
-
-# Fase 14 — Fechamento de portfólio
-
-## FMH-047 — Criar README em inglês
-
-**Status:** `BACKLOG`
-
-**Depende de:** arquitetura estabilizada
+**Depende de:** FMH-043, FMH-018
 
 ### Aceite
 
-- `README.en.md`;
-- link de idioma no topo dos dois READMEs;
-- PT-BR permanece padrão.
+- Web Service inicia corretamente;
+- `/health` funciona;
+- secrets/config permanecem fora do bundle e do Git.
 
 ---
 
-## FMH-048 — Documentar trade-offs finais
+## FMH-046 — Definir e implementar estratégia de CD no Render
 
 **Status:** `BACKLOG`
 
-### Objetivo
+**Depende de:** FMH-044, FMH-045
 
-Explicar claramente:
+### Decisão
+
+Comparar auto-deploy nativo do Render vs deploy controlado pelo GitHub Actions e registrar a escolha.
+
+---
+
+## FMH-047 — Configurar runtime manifest, cache e URLs de produção
+
+**Status:** `BACKLOG`
+
+**Depende de:** FMH-013, FMH-044, FMH-046
+
+### Escopo
+
+- manifest/configuração central de remotes;
+- versão/URL de cada remote;
+- política de cache de `remoteEntry`;
+- chunks versionados/hash quando aplicável.
+
+---
+
+## FMH-048 — Implementar estratégia de rollback de MFE
+
+**Status:** `BACKLOG`
+
+**Depende de:** FMH-047
+
+### Aceite
+
+- um remote pode voltar para versão conhecida sem republicar todos os MFEs;
+- procedimento fica documentado.
+
+---
+
+## FMH-049 — Criar smoke test pós-deploy
+
+**Status:** `BACKLOG`
+
+**Depende de:** FMH-045, FMH-047
+
+### Verificações mínimas
+
+```text
+Shell responde
+remoteEntry responde
+MFE monta
+BFF /health responde
+```
+
+---
+
+# Fase 13 — Fechamento do case
+
+## FMH-050 — Validar i18n end-to-end
+
+**Status:** `BACKLOG`
+
+**Depende de:** FMH-017, FMH-031
+
+### Aceite
+
+- PT-BR e inglês funcionam em todos os MFEs previstos;
+- fallback e persistência de preferência funcionam.
+
+---
+
+## FMH-051 — Documentar trade-offs e roteiro de demonstração
+
+**Status:** `BACKLOG`
+
+**Depende de:** FMH-049, FMH-050
+
+### Cobrir
 
 - por que MFE;
 - quando MFE seria exagero;
-- Single-SPA vs alternativas;
-- Module Federation e riscos de acoplamento;
+- Single-SPA e Module Federation;
 - monorepo vs multirepo;
 - BFF;
 - Zod compartilhado;
-- custos de performance e operação.
+- Formik/Context API;
+- Render + Terraform;
+- performance, segurança e operação.
 
 ---
 
-## FMH-049 — Criar roteiro de demonstração técnica
+## FMH-052 — Revisar paridade README PT-BR / inglês
 
 **Status:** `BACKLOG`
 
-### Objetivo
+**Depende de:** FMH-051
 
-Permitir apresentar o projeto em entrevista em poucos minutos.
+### Aceite
 
-### Roteiro esperado
+- os dois READMEs refletem o estado realmente implementado;
+- links, arquitetura e URLs públicas estão corretos.
 
-1. arquitetura;
-2. Shell;
-3. lifecycles Single-SPA;
-4. Module Federation;
-5. contratos Zod;
-6. formulário validado no front e no BFF;
-7. BFF;
-8. fallback de MFE;
-9. testes;
-10. pipeline/deploy.
+---
+
+# Fase 14 — Case opcional AWS
+
+## FMH-053 — Avaliar/implementar arquitetura comparativa Terraform + AWS
+
+**Status:** `BACKLOG`
+
+**Opcional:** sim
+
+**Depende de:** case principal concluído
+
+### Possibilidades
+
+```text
+Render Static Sites -> S3 + CloudFront
+Render Web Service  -> Lambda + API Gateway
+Render logs         -> CloudWatch
+Terraform Render    -> Terraform AWS Provider
+```
+
+### Regra
+
+Esta task não bloqueia a conclusão do Financial MFE Hub. Só deve ser executada após o case principal estar funcional e se houver valor real na comparação.
 
 ---
 
 # Próxima task
 
-A próxima task recomendada é:
-
 ```text
-FMH-002 — Inicializar pnpm workspace
+FMH-002 — Inicializar pnpm workspace e Turborepo
 ```
 
-Após sua conclusão, seguir para configurações compartilhadas antes de iniciar os MFEs.
+A fundação documental está concluída. A partir daqui, novas decisões arquiteturais relevantes devem ser registradas no SDD ou em ADR antes/junto da implementação correspondente.

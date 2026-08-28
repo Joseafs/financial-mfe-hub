@@ -96,26 +96,12 @@ flowchart LR
   BFF --> Services["Serviços financeiros fictícios"]
   BFF --> Observability["CloudWatch\nlogs + métricas"]
 
-  Contracts["packages/contracts\nZod"] --> Dashboard
-  Contracts --> Accounts
-  Contracts --> Payments
-  Contracts --> Insurance
-  Contracts --> BFF
-
-  I18n["packages/i18n\nPT-BR / EN"] --> Shell
-  I18n --> Dashboard
-  I18n --> Accounts
-  I18n --> Payments
-  I18n --> Insurance
-
   Terraform["Terraform\nAWS Provider"] -. "provisiona" .-> CDN
   Terraform -. "provisiona" .-> Static
   Terraform -. "provisiona" .-> API
   Terraform -. "provisiona" .-> BFF
   Terraform -. "provisiona" .-> Observability
 ```
-
-Equivalência conceitual:
 
 | Case principal | Alternativa AWS |
 | --- | --- |
@@ -302,6 +288,6 @@ A documentação canônica fica em [`packages/context`](./packages/context/READM
 
 ## Status
 
-🟡 **Fase de definição arquitetural.**
+🟢 **SDD 1.0 e fundação documental consolidados.**
 
-Nenhuma implementação funcional deve começar antes da consolidação do SDD, das decisões abertas e do backlog técnico inicial.
+A próxima etapa de implementação é `FMH-002 — Inicializar pnpm workspace e Turborepo`.

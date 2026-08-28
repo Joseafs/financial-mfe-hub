@@ -1,0 +1,12 @@
+resource "render_static_site" "this" {
+  name          = var.name
+  repo_url      = var.repo_url
+  branch        = var.branch
+  build_command = var.build_command
+  publish_path  = var.publish_path
+  auto_deploy   = var.auto_deploy
+
+  build_filter = length(var.build_paths) == 0 ? null : {
+    paths = var.build_paths
+  }
+}

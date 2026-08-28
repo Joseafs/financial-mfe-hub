@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build/cache
+dist/
+build/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+
+# env/secrets
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+pnpm-debug.log*
+
+# editors/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+
+# misc
+*.local

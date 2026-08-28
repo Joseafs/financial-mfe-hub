@@ -1,0 +1,87 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: shell
+            package: '@financial-mfe/shell'
+            artifact: shell
+            path: apps/shell/dist
+          - app: dashboard
+            package: '@financial-mfe/dashboard'
+            artifact: dashboard
+            path: apps/dashboard-mfe/dist
+          - app: accounts
+            package: '@financial-mfe/accounts'
+            artifact: accounts
+            path: apps/accounts-mfe/dist
+          - app: payments
+            package: '@financial-mfe/payments'
+            artifact: payments
+            path: apps/payments-mfe/dist
+          - app: insurance
+            package: '@financial-mfe/insurance'
+            artifact: insurance
+            path: apps/insurance-mfe/dist
+          - app: bff
+            package: '@financial-mfe/bff'
+            artifact: bff
+            path: apps/bff/dist
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          if [[ -f pnpm-lock.yaml ]]; then
+            pnpm install --frozen-lockfile
+          else
+            echo "::warning::pnpm-lock.yaml ainda nao esta versionado; usando --no-frozen-lockfile temporariamente."
+            pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Build app
+        run: pnpm --filter "${{ matrix.package }}" build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmh-${{ matrix.artifact }}-${{ github.sha }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
+          retention-days: 7

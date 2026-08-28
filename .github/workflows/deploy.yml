@@ -1,0 +1,91 @@
+name: Deploy
+
+run-name: Deploy ${{ inputs.service }} · ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Servico Render para publicar
+        required: true
+        type: choice
+        options:
+          - shell
+          - dashboard
+          - accounts
+          - payments
+          - insurance
+          - bff
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production-${{ inputs.service }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    env:
+      RENDER_DEPLOY_HOOK_SHELL: ${{ secrets.RENDER_DEPLOY_HOOK_SHELL }}
+      RENDER_DEPLOY_HOOK_DASHBOARD: ${{ secrets.RENDER_DEPLOY_HOOK_DASHBOARD }}
+      RENDER_DEPLOY_HOOK_ACCOUNTS: ${{ secrets.RENDER_DEPLOY_HOOK_ACCOUNTS }}
+      RENDER_DEPLOY_HOOK_PAYMENTS: ${{ secrets.RENDER_DEPLOY_HOOK_PAYMENTS }}
+      RENDER_DEPLOY_HOOK_INSURANCE: ${{ secrets.RENDER_DEPLOY_HOOK_INSURANCE }}
+      RENDER_DEPLOY_HOOK_BFF: ${{ secrets.RENDER_DEPLOY_HOOK_BFF }}
+
+    steps:
+      - name: Resolve deploy hook
+        id: hook
+        shell: bash
+        run: |
+          case "${{ inputs.service }}" in
+            shell) hook="$RENDER_DEPLOY_HOOK_SHELL" ;;
+            dashboard) hook="$RENDER_DEPLOY_HOOK_DASHBOARD" ;;
+            accounts) hook="$RENDER_DEPLOY_HOOK_ACCOUNTS" ;;
+            payments) hook="$RENDER_DEPLOY_HOOK_PAYMENTS" ;;
+            insurance) hook="$RENDER_DEPLOY_HOOK_INSURANCE" ;;
+            bff) hook="$RENDER_DEPLOY_HOOK_BFF" ;;
+            *)
+              echo "::error::Servico invalido: ${{ inputs.service }}"
+              exit 1
+              ;;
+          esac
+
+          if [[ -z "$hook" ]]; then
+            echo "::error::Deploy hook do Render ainda nao configurado para ${{ inputs.service }}. Configure o secret correspondente no environment production."
+            exit 1
+          fi
+
+          echo "hook=$hook" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger Render deploy
+        env:
+          DEPLOY_HOOK: ${{ steps.hook.outputs.hook }}
+        shell: bash
+        run: |
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --retry 2 \
+            --request POST \
+            "$DEPLOY_HOOK"
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          {
+            echo "## Render deploy requested"
+            echo ""
+            echo "- Service: \`${{ inputs.service }}\`"
+            echo "- Git ref: \`${{ github.ref_name }}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo ""
+            echo "> O smoke pos-deploy e a promocao automatica ficam para FMH-049/FMH-046 apos a infraestrutura Render estar provisionada."
+          } >> "$GITHUB_STEP_SUMMARY"

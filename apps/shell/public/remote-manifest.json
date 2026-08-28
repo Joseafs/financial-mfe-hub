@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "environment": "local",
+  "remotes": {
+    "dashboard": {
+      "scope": "dashboard",
+      "version": "0.0.1",
+      "remoteEntry": "http://localhost:4201/remoteEntry.js"
+    },
+    "accounts": {
+      "scope": "accounts",
+      "version": "0.0.1",
+      "remoteEntry": "http://localhost:4202/remoteEntry.js"
+    },
+    "payments": {
+      "scope": "payments",
+      "version": "0.0.1",
+      "remoteEntry": "http://localhost:4203/remoteEntry.js"
+    },
+    "insurance": {
+      "scope": "insurance",
+      "version": "0.0.1",
+      "remoteEntry": "http://localhost:4204/remoteEntry.js"
+    }
+  }
+}

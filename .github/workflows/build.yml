@@ -17,42 +17,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build ${{ matrix.app }}
+  affected-build:
+    name: Build affected graph
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - app: shell
-            package: '@financial-mfe/shell'
-            artifact: shell
-            path: apps/shell/dist
-          - app: dashboard
-            package: '@financial-mfe/dashboard'
-            artifact: dashboard
-            path: apps/dashboard-mfe/dist
-          - app: accounts
-            package: '@financial-mfe/accounts'
-            artifact: accounts
-            path: apps/accounts-mfe/dist
-          - app: payments
-            package: '@financial-mfe/payments'
-            artifact: payments
-            path: apps/payments-mfe/dist
-          - app: insurance
-            package: '@financial-mfe/insurance'
-            artifact: insurance
-            path: apps/insurance-mfe/dist
-          - app: bff
-            package: '@financial-mfe/bff'
-            artifact: bff
-            path: apps/bff/dist
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -75,13 +49,40 @@ jobs:
             pnpm install --no-frozen-lockfile
           fi
 
-      - name: Build app
-        run: pnpm --filter "${{ matrix.package }}" build
+      - name: Resolve SCM range
+        if: github.event_name != 'workflow_dispatch'
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "TURBO_SCM_BASE=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_ENV"
+            echo "TURBO_SCM_HEAD=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
+          else
+            echo "TURBO_SCM_BASE=${{ github.event.before }}" >> "$GITHUB_ENV"
+            echo "TURBO_SCM_HEAD=${{ github.sha }}" >> "$GITHUB_ENV"
+          fi
 
-      - name: Upload artifact
+      - name: Show affected packages
+        if: github.event_name != 'workflow_dispatch'
+        run: pnpm exec turbo ls --affected
+
+      - name: Build affected packages
+        if: github.event_name != 'workflow_dispatch'
+        run: pnpm exec turbo run build --affected
+
+      - name: Full build on manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm build
+
+      - name: Upload build outputs
         uses: actions/upload-artifact@v4
         with:
-          name: fmh-${{ matrix.artifact }}-${{ github.sha }}
-          path: ${{ matrix.path }}
-          if-no-files-found: error
+          name: fmh-build-${{ github.sha }}
+          path: |
+            apps/shell/dist
+            apps/dashboard-mfe/dist
+            apps/accounts-mfe/dist
+            apps/payments-mfe/dist
+            apps/insurance-mfe/dist
+            apps/bff/dist
+          if-no-files-found: warn
           retention-days: 7

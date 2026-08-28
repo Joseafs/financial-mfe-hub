@@ -9,7 +9,10 @@ import {
   createRemoteFallback,
   type RemoteLifecycleModule,
 } from './runtime/remote-fallback';
-import type { RemoteName } from './runtime/remote-manifest';
+import {
+  getRemoteManifest,
+  type RemoteName,
+} from './runtime/remote-manifest';
 
 const applications: Array<{ name: RemoteName; activeWhen: string }> = [
   { name: 'dashboard', activeWhen: '/dashboard' },
@@ -88,6 +91,31 @@ function syncShellNavigation() {
   }
 }
 
+function syncManifestMetadata() {
+  const manifest = getRemoteManifest();
+  const runtimeStatus = document.querySelector<HTMLElement>('.shell-live');
+
+  if (runtimeStatus) {
+    runtimeStatus.textContent = `${manifest.environment} runtime · manifest v${manifest.schemaVersion}`;
+  }
+
+  for (const application of applications) {
+    const anchor = document.querySelector<HTMLAnchorElement>(
+      `[data-mfe-nav="${application.name}"]`,
+    );
+    const role = anchor?.querySelector<HTMLElement>('.shell-node__role');
+    const remote = manifest.remotes[application.name];
+
+    if (anchor) {
+      anchor.title = `${application.name} ${remote.version} · ${remote.remoteEntry}`;
+    }
+
+    if (role) {
+      role.textContent = `v${remote.version} · ${new URL(remote.remoteEntry).host}`;
+    }
+  }
+}
+
 document.addEventListener('click', handleShellNavigation);
 window.addEventListener('single-spa:routing-event', syncShellNavigation);
 
@@ -99,5 +127,6 @@ if (window.location.pathname === '/') {
   window.history.replaceState(null, '', '/dashboard');
 }
 
+syncManifestMetadata();
 syncShellNavigation();
 start({ urlRerouteOnly: true });

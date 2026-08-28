@@ -4,6 +4,10 @@ import {
   registerApplication,
   start,
 } from 'single-spa';
+import {
+  ARCHITECTURE_HEALTH_ROUTE,
+  syncArchitectureHealthView,
+} from './architecture-health';
 import { loadFederatedModule } from './runtime/federation-loader';
 import {
   createRemoteFallback,
@@ -75,10 +79,9 @@ function handleShellNavigation(event: MouseEvent) {
 }
 
 function syncShellNavigation() {
-  const currentMfe = window.location.pathname.split('/')[1] || 'dashboard';
-  const currentRoute = document.querySelector<HTMLElement>('[data-current-route]');
+  const currentMfe = window.location.pathname.split('/')[1] || 'architecture-health';
 
-  if (currentRoute) {
+  for (const currentRoute of document.querySelectorAll<HTMLElement>('[data-current-route]')) {
     currentRoute.textContent = window.location.pathname;
   }
 
@@ -91,6 +94,8 @@ function syncShellNavigation() {
       anchor.removeAttribute('aria-current');
     }
   }
+
+  syncArchitectureHealthView();
 }
 
 function syncRollbackControl() {
@@ -191,7 +196,7 @@ addErrorHandler((error) => {
 });
 
 if (window.location.pathname === '/') {
-  window.history.replaceState(null, '', '/dashboard');
+  window.history.replaceState(null, '', ARCHITECTURE_HEALTH_ROUTE);
 }
 
 syncManifestMetadata();

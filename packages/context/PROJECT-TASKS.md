@@ -98,11 +98,11 @@ screenshot quando aplicável
 arquivo/teste que demonstra o comportamento
 ```
 
-### Snapshot de sincronização — POC local (2026-08-28)
+### Snapshot de sincronização — POC + Render (2026-08-28)
 
-A POC arquitetural local já possui implementação observável suficiente para mover as tasks centrais da fundação para `REVIEW`, sem antecipar `DONE` antes dos gates de qualidade.
+A POC arquitetural já foi preservada pela tag `v0.1.0` e pela rota viva `/architecture-health`. O Shell e os quatro MFEs também já estão provisionados como Static Sites independentes no Render.
 
-Evidências já observadas durante a POC:
+Evidências já observadas:
 
 - `pnpm install` concluído no workspace;
 - Shell, Dashboard, Accounts, Payments, Insurance e BFF executando localmente;
@@ -112,28 +112,41 @@ Evidências já observadas durante a POC:
 - runtime manifest carregado pelo Shell antes da orquestração;
 - falha isolada de remote sem derrubar o Shell ou os demais MFEs;
 - seleção de `active`/`stable` e auto-rollback demonstrativo exercitados localmente;
-- release identity visível nos stubs para diagnóstico.
+- release identity visível nos stubs para diagnóstico;
+- CI de testes, build e Terraform executando no GitHub Actions;
+- builds afetados/independentes validados via Turborepo;
+- Terraform com provider `render-oss/render` validado;
+- Shell + quatro MFEs publicados como serviços Render independentes;
+- manifest de produção do Shell apontando para os quatro `remoteEntry.js` publicados;
+- plano Terraform do BFF validado com `1 to add, 0 to change, 0 to destroy`;
+- BFF preparado para Render Free, aguardando apply e validação pública do `/health`.
 
-Status sincronizado da POC:
+Status sincronizado:
 
 | Task | Estado | Evidência / pendência principal |
 | --- | --- | --- |
-| FMH-002 | `REVIEW` | workspace e scripts existem; aguarda gates completos |
+| FMH-002 | `REVIEW` | workspace e scripts existem; aguarda fechamento formal dos gates |
 | FMH-003 | `REVIEW` | configs compartilhadas existem e TypeScript está em `strict` |
-| FMH-004 | `REVIEW` | portas, runtime config e execução local estão definidos; aguarda gates |
-| FMH-005 | `REVIEW` | Shell funcional localmente |
+| FMH-004 | `REVIEW` | portas, runtime config e execução local estão definidos |
+| FMH-005 | `REVIEW` | Shell funcional local e publicado |
 | FMH-006 | `REVIEW` | registro manual Single-SPA documentado em ADR |
-| FMH-007 | `REVIEW` | Dashboard stub monta e participa da composição |
-| FMH-008 | `REVIEW` | Accounts stub monta e participa da composição |
+| FMH-007 | `REVIEW` | Dashboard stub monta localmente e em produção |
+| FMH-008 | `REVIEW` | Accounts stub monta localmente e em produção |
 | FMH-025 | `REVIEW` | Payments stub monta, expõe versão e participa do rollback POC |
-| FMH-030 | `REVIEW` | Insurance stub monta e participa da composição |
-| FMH-009 | `REVIEW` | fallback/isolamento de remote demonstrado manualmente |
-| FMH-010 | `REVIEW` | Module Federation funciona localmente |
+| FMH-030 | `REVIEW` | Insurance stub monta localmente e em produção |
+| FMH-009 | `REVIEW` | fallback/isolamento de remote demonstrado |
+| FMH-010 | `REVIEW` | Module Federation funciona localmente e no Render |
 | FMH-011 | `REVIEW` | shared dependencies e singleton documentados |
 | FMH-012 | `REVIEW` | `./lifecycles` é consumido como módulo federado real |
-| FMH-013 | `REVIEW` | manifest/runtime loader e active/stable funcionam localmente; produção será fechada em FMH-047 |
-| FMH-018 | `DOING` | `/health`, logging e separação app/server existem; configuração tipada ainda precisa ser fechada |
-| FMH-041 | `READY` | próxima implementação da trilha crítica |
+| FMH-013 | `REVIEW` | manifest/runtime loader funciona em produção; cache será fechado em FMH-047 |
+| FMH-018 | `REVIEW` | `/health`, logging, app/server e configuração tipada implementados |
+| FMH-041 | `REVIEW` | CI implementado e executando no GitHub Actions |
+| FMH-042 | `REVIEW` | estratégia de builds afetados/independentes implementada |
+| FMH-043 | `REVIEW` | Terraform + Render implementado, validado e aplicado aos frontends |
+| FMH-044 | `REVIEW` | cinco Static Sites publicados e Shell consumindo remotes de produção |
+| FMH-045 | `DOING` | Web Service configurado no Terraform; falta apply + `/health` público |
+| FMH-054 | `REVIEW` | `/architecture-health` preserva e diagnostica a POC viva |
+| FMH-055 | `BACKLOG` | Swagger/OpenAPI definido como próxima evolução de documentação do BFF |
 
 Antes de promover as tasks em `REVIEW` para `DONE`, registrar evidência atualizada de:
 
@@ -542,7 +555,7 @@ Provar federation com um caso pequeno e observável antes de qualquer composiç�
 
 ## FMH-018 — Bootstrap do Fastify BFF
 
-**Status:** `DOING`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-002
 
@@ -603,6 +616,31 @@ INTERNAL_ERROR
 
 - requests possuem correlation/request id;
 - logs permitem correlacionar MFE, endpoint e falha.
+
+---
+
+## FMH-055 — Documentar BFF com OpenAPI / Swagger UI
+
+**Status:** `BACKLOG`
+
+**Depende de:** FMH-018; evolui em conjunto com FMH-019
+
+### Escopo
+
+- OpenAPI 3 gerado a partir dos schemas das rotas Fastify;
+- `@fastify/swagger` compatível com Fastify 5;
+- `@fastify/swagger-ui` compatível com Fastify 5;
+- rota pública de documentação no ambiente demo, preferencialmente `/docs`;
+- contrato `/health` documentado desde a primeira versão;
+- novos endpoints entram na documentação sem manter um arquivo OpenAPI manual paralelo.
+
+### Aceite
+
+- Swagger UI abre localmente e no BFF publicado;
+- especificação OpenAPI pode ser consultada em JSON;
+- `/health` aparece documentado;
+- nenhuma credencial ou secret aparece na especificação;
+- build, lint e typecheck do BFF continuam passando.
 
 ---
 
@@ -850,6 +888,34 @@ cor: laranja
 
 ---
 
+## FMH-054 — Preservar Architecture Health da POC no Shell
+
+**Status:** `REVIEW`
+
+**Depende de:** FMH-013, FMH-044
+
+### Objetivo
+
+Manter a prova arquitetural acessível mesmo após o Shell evoluir para uma experiência de produto.
+
+### Escopo
+
+- rota `/architecture-health`;
+- visão do manifest/runtime ativo;
+- status dos quatro remotes;
+- navegação para os MFEs;
+- identidade de versão/canal quando disponível;
+- a futura home `/` pode evoluir sem apagar a console arquitetural.
+
+### Aceite
+
+- `/architecture-health` funciona por URL direta e navegação Single-SPA;
+- a página não depende de telas de produto;
+- os quatro remotes podem ser diagnosticados sem desmontar o Shell;
+- a rota permanece adequada para demonstração técnica do case.
+
+---
+
 # Fase 11 — Autenticação e segurança
 
 ## FMH-039 — Criar `packages/auth` e estratégia de sessão
@@ -894,7 +960,7 @@ Definir sessão/autenticação considerando Shell/MFEs/BFF em serviços Render d
 
 ## FMH-041 — Criar pipeline CI
 
-**Status:** `READY`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-002
 
@@ -919,7 +985,7 @@ pnpm build
 
 ## FMH-042 — Validar builds independentes
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-041
 
@@ -933,7 +999,7 @@ pnpm build
 
 ## FMH-043 — Inicializar Terraform para Render
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-042
 
@@ -943,7 +1009,8 @@ pnpm build
 - `infrastructure/terraform`;
 - módulos `static-site`, `web-service` e `shared`;
 - environment `production`;
-- `.tfstate` fora do Git.
+- `.tfstate` fora do Git;
+- `.terraform.lock.hcl` versionado.
 
 ### Aceite
 
@@ -957,14 +1024,14 @@ terraform plan
 
 ## FMH-044 — Provisionar Shell e MFEs como Render Static Sites
 
-**Status:** `BACKLOG`
+**Status:** `REVIEW`
 
 **Depende de:** FMH-043
 
 ### Aceite
 
 - Shell e cada MFE possuem serviço independente;
-- URLs podem alimentar runtime config;
+- URLs alimentam runtime config de produção;
 - deploy de um MFE não exige deploy dos demais;
 - os quatro stubs coloridos ficam acessíveis no ambiente demo.
 
@@ -972,14 +1039,22 @@ terraform plan
 
 ## FMH-045 — Provisionar Fastify BFF como Render Web Service
 
-**Status:** `BACKLOG`
+**Status:** `DOING`
 
 **Depende de:** FMH-043, FMH-018
+
+### Decisões
+
+- plano padrão do case: `free`;
+- região inicial: `virginia`;
+- `auto_deploy = false` até FMH-046;
+- `HOST=0.0.0.0` e `PORT` fornecida pelo Render.
 
 ### Aceite
 
 - Web Service inicia corretamente;
-- `/health` funciona;
+- `/health` funciona publicamente;
+- plano Terraform não altera os cinco frontends existentes;
 - secrets/config permanecem fora do bundle e do Git.
 
 ---
@@ -1073,6 +1148,8 @@ O gate é considerado atendido quando FMH-002/003/004/005/006/007/008/025/030/00
 - smoke test pós-deploy;
 - rollback demonstrável.
 
+`FMH-054` preserva a demonstração viva do gate, mas não adiciona dependência obrigatória ao gate. `FMH-055` melhora a documentação do BFF e pode evoluir em paralelo ao fechamento arquitetural.
+
 Somente então a implementação de produto passa a ser a prioridade principal.
 
 ---
@@ -1154,7 +1231,7 @@ Esta task não bloqueia a conclusão do Financial MFE Hub. Só deve ser executad
 # Próxima task
 
 ```text
-FMH-041 — Criar pipeline CI
+FMH-045 — aplicar o BFF no Render Free e validar /health público
 ```
 
-A POC local já provou a composição arquitetural mínima. O próximo passo é transformar os gates locais em CI reproduzível e usar essa automação para promover as tasks em `REVIEW` para `DONE` com evidência rastreável, antes de avançar para builds/deploys independentes e infraestrutura Render.
+Depois disso, a trilha segue por FMH-046 (CD), FMH-047 (manifest/cache), FMH-049 (smoke pós-deploy) e FMH-048 (rollback real). FMH-055 (Swagger/OpenAPI) fica registrado para evoluir a documentação do BFF sem bloquear o Architecture Gate.

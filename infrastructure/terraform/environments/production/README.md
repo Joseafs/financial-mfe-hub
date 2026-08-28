@@ -75,15 +75,16 @@ O esperado e um JSON com `status: "ok"`, identificacao do servico, ambiente `pro
 
 ## 4. Cache de runtime
 
-A configuracao do Render diferencia arquivos de descoberta em runtime dos demais artefatos:
+A configuracao do Render diferencia arquivos de descoberta em runtime dos chunks imutaveis:
 
 ```text
 Shell /remote-manifest.json -> Cache-Control: no-store
 Shell /index.html           -> Cache-Control: no-cache, must-revalidate
 MFE /remoteEntry.js         -> Cache-Control: no-cache, must-revalidate
+MFE /assets/*               -> Cache-Control: public, max-age=31536000, immutable
 ```
 
-O objetivo e impedir que o Shell ou um remote mantenham por tempo excessivo um ponteiro de release antigo. O `remoteEntry.js` continua com nome estavel porque e o ponto de entrada conhecido pelo runtime manifest. A etapa seguinte da FMH-047 e fingerprintar os chunks internos para permitir cache imutavel sem tornar o `remoteEntry.js` imutavel.
+O `remoteEntry.js` continua com nome estavel porque e o ponto de entrada conhecido pelo runtime manifest. Os chunks internos dos quatro MFEs sao emitidos em `assets/` com `contenthash`, permitindo cache longo e imutavel sem prender o runtime a uma release antiga.
 
 ## 5. Smoke HTTP
 
@@ -122,7 +123,8 @@ Este smoke e propositalmente HTTP. A montagem real dos MFEs em navegador continu
 - cada servico executa somente o build do proprio package;
 - build filters incluem o app e os packages/configs compartilhados do monorepo;
 - o Shell possui rewrite `/* -> /index.html` para suportar navegacao Single-SPA por URL direta;
-- o Shell e os MFEs usam headers explicitos para revalidar manifest, HTML de entrada e `remoteEntry.js`;
+- manifest, HTML de entrada e `remoteEntry.js` sempre revalidam antes de serem reutilizados;
+- chunks internos dos MFEs usam `contenthash` e cache imutavel em `/assets/*`;
 - o BFF usa `HOST=0.0.0.0`, recebe `PORT` do Render e valida configuracao no bootstrap;
 - cold start do BFF gratuito deve ser tolerado pelas validacoes operacionais;
 - `pnpm-lock.yaml` e `.terraform.lock.hcl` sao versionados para reproducibilidade;

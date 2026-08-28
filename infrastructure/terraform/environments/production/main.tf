@@ -43,6 +43,11 @@ locals {
           name  = "Cache-Control"
           value = "no-cache, must-revalidate"
           path  = "/remoteEntry.js"
+        },
+        {
+          name  = "Cache-Control"
+          value = "public, max-age=31536000, immutable"
+          path  = "/assets/*"
         }
       ]
     }
@@ -56,6 +61,11 @@ locals {
           name  = "Cache-Control"
           value = "no-cache, must-revalidate"
           path  = "/remoteEntry.js"
+        },
+        {
+          name  = "Cache-Control"
+          value = "public, max-age=31536000, immutable"
+          path  = "/assets/*"
         }
       ]
     }
@@ -69,6 +79,11 @@ locals {
           name  = "Cache-Control"
           value = "no-cache, must-revalidate"
           path  = "/remoteEntry.js"
+        },
+        {
+          name  = "Cache-Control"
+          value = "public, max-age=31536000, immutable"
+          path  = "/assets/*"
         }
       ]
     }
@@ -82,6 +97,11 @@ locals {
           name  = "Cache-Control"
           value = "no-cache, must-revalidate"
           path  = "/remoteEntry.js"
+        },
+        {
+          name  = "Cache-Control"
+          value = "public, max-age=31536000, immutable"
+          path  = "/assets/*"
         }
       ]
     }

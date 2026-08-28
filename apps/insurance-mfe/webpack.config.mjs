@@ -11,15 +11,18 @@ export default (env = {}, argv) => {
   const port = Number(env.port ?? 4204);
   const version = String(env.version ?? process.env.npm_package_version ?? '0.0.0');
   const release = String(env.release ?? 'active');
+  const production = argv.mode === 'production';
 
   return {
     entry: path.resolve(__dirname, 'src/index.ts'),
-    devtool: argv.mode === 'production' ? 'source-map' : 'eval-source-map',
+    devtool: production ? 'source-map' : 'eval-source-map',
     output: {
       path: path.resolve(__dirname, 'dist'),
       publicPath: 'auto',
       clean: true,
       uniqueName: `financial_mfe_insurance_${release}`,
+      filename: production ? 'assets/[name].[contenthash:8].js' : '[name].js',
+      chunkFilename: production ? 'assets/[name].[contenthash:8].js' : '[name].js',
     },
     resolve: { extensions: ['.ts', '.tsx', '.js'] },
     module: {

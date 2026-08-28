@@ -28,6 +28,8 @@ The project explores:
 
 ## Architecture
 
+The MFE colors in the diagram are also used during the initial architecture-validation phase so it is immediately clear which application was mounted.
+
 ```mermaid
 flowchart LR
   User["User"] --> Static["Render Static Sites\nShell + MFEs"]
@@ -64,6 +66,34 @@ flowchart LR
 
   Terraform["Terraform\nrender-oss/render"] -. "provisions" .-> Static
   Terraform -. "provisions" .-> BFF
+
+  classDef user fill:#374151,stroke:#9CA3AF,color:#FFFFFF;
+  classDef render fill:#0F766E,stroke:#5EEAD4,color:#FFFFFF;
+  classDef shell fill:#0F172A,stroke:#38BDF8,color:#FFFFFF;
+  classDef dashboard fill:#1D4ED8,stroke:#93C5FD,color:#FFFFFF;
+  classDef accounts fill:#15803D,stroke:#86EFAC,color:#FFFFFF;
+  classDef payments fill:#7C3AED,stroke:#C4B5FD,color:#FFFFFF;
+  classDef insurance fill:#C2410C,stroke:#FDBA74,color:#FFFFFF;
+  classDef shared fill:#334155,stroke:#94A3B8,color:#FFFFFF;
+  classDef contracts fill:#854D0E,stroke:#FDE68A,color:#FFFFFF;
+  classDef i18n fill:#0E7490,stroke:#67E8F9,color:#FFFFFF;
+  classDef bff fill:#4338CA,stroke:#A5B4FC,color:#FFFFFF;
+  classDef services fill:#374151,stroke:#D1D5DB,color:#FFFFFF;
+  classDef terraform fill:#5B21B6,stroke:#C4B5FD,color:#FFFFFF;
+
+  class User user;
+  class Static render;
+  class Shell shell;
+  class Dashboard dashboard;
+  class Accounts accounts;
+  class Payments payments;
+  class Insurance insurance;
+  class Shared shared;
+  class Contracts contracts;
+  class I18n i18n;
+  class BFF bff;
+  class Services services;
+  class Terraform terraform;
 ```
 
 <details>
@@ -101,6 +131,30 @@ flowchart LR
   Terraform -. "provisions" .-> API
   Terraform -. "provisions" .-> BFF
   Terraform -. "provisions" .-> Observability
+
+  classDef user fill:#374151,stroke:#9CA3AF,color:#FFFFFF;
+  classDef aws fill:#B45309,stroke:#FCD34D,color:#FFFFFF;
+  classDef shell fill:#0F172A,stroke:#38BDF8,color:#FFFFFF;
+  classDef dashboard fill:#1D4ED8,stroke:#93C5FD,color:#FFFFFF;
+  classDef accounts fill:#15803D,stroke:#86EFAC,color:#FFFFFF;
+  classDef payments fill:#7C3AED,stroke:#C4B5FD,color:#FFFFFF;
+  classDef insurance fill:#C2410C,stroke:#FDBA74,color:#FFFFFF;
+  classDef shared fill:#334155,stroke:#94A3B8,color:#FFFFFF;
+  classDef bff fill:#4338CA,stroke:#A5B4FC,color:#FFFFFF;
+  classDef services fill:#374151,stroke:#D1D5DB,color:#FFFFFF;
+  classDef terraform fill:#5B21B6,stroke:#C4B5FD,color:#FFFFFF;
+
+  class User user;
+  class CDN,Static,API,Observability aws;
+  class Shell shell;
+  class Dashboard dashboard;
+  class Accounts accounts;
+  class Payments payments;
+  class Insurance insurance;
+  class Shared shared;
+  class BFF bff;
+  class Services services;
+  class Terraform terraform;
 ```
 
 | Main case | AWS alternative |
@@ -113,6 +167,45 @@ flowchart LR
 This optional path may later be implemented to compare **PaaS vs cloud primitives**, operational cost, deployment and portability.
 
 </details>
+
+## Architecture Validation First
+
+Before building a large financial application, the project validates the architecture with the smallest possible amount of product code.
+
+The first milestone uses **simple colored visual stubs**:
+
+| Application | Initial color | Goal during this phase |
+| --- | --- | --- |
+| `dashboard-mfe` | blue | prove mount/unmount and route ownership |
+| `accounts-mfe` | green | prove a second independent remote |
+| `payments-mfe` | purple | prove parallel domain evolution |
+| `insurance-mfe` | orange | prove composition scales |
+
+Each stub only exposes useful diagnostics such as MFE name, version/build and environment. The initial identity does not define the final design system.
+
+```text
+workspace
+  ↓
+shell + colored MFE stubs
+  ↓
+BFF /health
+  ↓
+CI/CD
+  ↓
+Terraform + Render
+  ↓
+runtime config
+  ↓
+smoke test + rollback
+  ↓
+ARCHITECTURE GATE ✅
+  ↓
+functional domain evolution
+```
+
+The initial phase must prove Single-SPA, Module Federation, independent builds/deployments, runtime remotes, fallback, CI/CD, Terraform, Render, smoke tests and rollback **before** significant effort goes into business rules, dashboards or complete forms.
+
+The decision is recorded in [`ADR-001 — Architecture Validation First`](./packages/context/adr/ADR-001-architecture-validation-first.md).
 
 ## Main responsibilities
 
@@ -265,11 +358,12 @@ terraform apply
 Canonical technical documentation lives in [`packages/context`](./packages/context/README.md):
 
 - [`SDD.md`](./packages/context/SDD.md): architecture, boundaries, decisions, security, performance, i18n, CI/CD and infrastructure;
+- [`CI-CD.md`](./packages/context/CI-CD.md): pipelines, quality gates, deployment, smoke tests and rollback;
 - [`PROJECT-TASKS.md`](./packages/context/PROJECT-TASKS.md): incremental implementation flow and completion criteria;
-- `adr/`: architectural decisions that need their own history.
+- [`ADR-001`](./packages/context/adr/ADR-001-architecture-validation-first.md): architecture validation before functional evolution.
 
 ## Status
 
 🟢 **SDD 1.0 and the documentation foundation are consolidated.**
 
-The next implementation step is `FMH-002 — Initialize the pnpm workspace`.
+The next step is `FMH-002`, following the **Architecture Validation First** critical path until the Architecture Gate.

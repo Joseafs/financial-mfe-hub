@@ -127,7 +127,7 @@ module "frontend" {
   name          = "${module.shared.service_prefix}-${each.key}"
   repo_url      = module.shared.repository_url
   branch        = module.shared.branch
-  build_command = "corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --no-frozen-lockfile && pnpm --filter '${each.value.package_name}' build"
+  build_command = "corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm --filter '${each.value.package_name}' build"
   publish_path  = each.value.publish_path
   auto_deploy   = false
   build_paths   = concat(["${each.value.app_path}/**"], module.shared.shared_build_paths)
@@ -168,7 +168,7 @@ module "bff" {
   branch            = module.shared.branch
   region            = var.bff_region
   plan              = var.bff_plan
-  build_command     = "corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --no-frozen-lockfile && pnpm --filter '@financial-mfe/bff' build"
+  build_command     = "corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm --filter '@financial-mfe/bff' build"
   start_command     = "corepack pnpm --filter '@financial-mfe/bff' start"
   health_check_path = "/health"
   auto_deploy       = false

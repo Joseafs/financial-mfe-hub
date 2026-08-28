@@ -33,12 +33,6 @@ export default (_env, argv) => ({
   plugins: [
     new ModuleFederationPlugin({
       name: 'shell',
-      remotes: {
-        dashboard: 'dashboard@http://localhost:4201/remoteEntry.js',
-        accounts: 'accounts@http://localhost:4202/remoteEntry.js',
-        payments: 'payments@http://localhost:4203/remoteEntry.js',
-        insurance: 'insurance@http://localhost:4204/remoteEntry.js',
-      },
       shared: {
         react: { singleton: true, requiredVersion: false },
         'react-dom': { singleton: true, requiredVersion: false },
@@ -282,10 +276,25 @@ export default (_env, argv) => ({
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 8px;
+        gap: 10px;
       }
       .shell-runtime-error strong { color: #fecaca; font-size: 20px; }
       .shell-runtime-error span { color: #fca5a5; }
+      .shell-runtime-error code { color: #cbd5e1; overflow-wrap: anywhere; }
+      .shell-runtime-error__actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+      .shell-runtime-error__actions button,
+      .shell-runtime-error__actions a {
+        appearance: none;
+        border: 1px solid rgba(254, 202, 202, 0.35);
+        border-radius: 10px;
+        padding: 9px 12px;
+        background: rgba(15, 23, 42, 0.62);
+        color: #fee2e2;
+        font: inherit;
+        font-size: 12px;
+        text-decoration: none;
+        cursor: pointer;
+      }
 
       @media (max-width: 980px) {
         .shell-hero { grid-template-columns: 1fr; }

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "webpack serve --mode development",
-    "build": "webpack --mode production",
+    "build": "webpack --mode production && node scripts/copy-runtime-assets.mjs",
     "lint": "eslint src webpack.config.mjs",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check ."

@@ -10,6 +10,7 @@ import {
   type RemoteLifecycleModule,
 } from './runtime/remote-fallback';
 import {
+  getRemoteDefinition,
   getRemoteManifest,
   type RemoteName,
 } from './runtime/remote-manifest';
@@ -105,13 +106,18 @@ function syncManifestMetadata() {
     );
     const role = anchor?.querySelector<HTMLElement>('.shell-node__role');
     const remote = manifest.remotes[application.name];
+    const selected = getRemoteDefinition(application.name);
+    const stableLabel = remote.stable ? ` · stable v${remote.stable.version}` : '';
+    const selectedLabel = selected.channel === 'stable' ? 'rollback → ' : 'active ';
 
     if (anchor) {
-      anchor.title = `${application.name} ${remote.version} · ${remote.remoteEntry}`;
+      anchor.dataset.releaseChannel = selected.channel;
+      anchor.dataset.releaseVersion = selected.version;
+      anchor.title = `${application.name} · ${selected.channel} v${selected.version} · ${selected.remoteEntry}`;
     }
 
     if (role) {
-      role.textContent = `v${remote.version} · ${new URL(remote.remoteEntry).host}`;
+      role.textContent = `${selectedLabel}v${selected.version}${stableLabel} · ${new URL(selected.remoteEntry).host}`;
     }
   }
 }

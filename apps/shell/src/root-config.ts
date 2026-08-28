@@ -7,32 +7,29 @@ import {
   start,
 } from 'single-spa';
 
-const applications = [
-  {
-    name: 'dashboard',
-    activeWhen: ['/dashboard'],
-    app: () => import('dashboard/lifecycles'),
-  },
-  {
-    name: 'accounts',
-    activeWhen: ['/accounts'],
-    app: () => import('accounts/lifecycles'),
-  },
-  {
-    name: 'payments',
-    activeWhen: ['/payments'],
-    app: () => import('payments/lifecycles'),
-  },
-  {
-    name: 'insurance',
-    activeWhen: ['/insurance'],
-    app: () => import('insurance/lifecycles'),
-  },
-] as const;
+registerApplication({
+  name: 'dashboard',
+  activeWhen: ['/dashboard'],
+  app: () => import('dashboard/lifecycles'),
+});
 
-for (const application of applications) {
-  registerApplication(application);
-}
+registerApplication({
+  name: 'accounts',
+  activeWhen: ['/accounts'],
+  app: () => import('accounts/lifecycles'),
+});
+
+registerApplication({
+  name: 'payments',
+  activeWhen: ['/payments'],
+  app: () => import('payments/lifecycles'),
+});
+
+registerApplication({
+  name: 'insurance',
+  activeWhen: ['/insurance'],
+  app: () => import('insurance/lifecycles'),
+});
 
 addErrorHandler((error) => {
   console.error('[shell] single-spa error', error);

@@ -8,10 +8,12 @@ $ErrorActionPreference = 'Stop'
 
 $RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../../../..')).Path
 $EnvironmentDirectory = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$TerraformRoot = (Resolve-Path (Join-Path $EnvironmentDirectory '../..')).Path
 $EnvFile = Join-Path $RepositoryRoot '.env'
 $PlanFile = Join-Path $EnvironmentDirectory 'production.tfplan'
+$TerraformCommand = Get-Command terraform -ErrorAction SilentlyContinue
 
-if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
+if (-not $TerraformCommand) {
   throw 'Terraform nao foi encontrado no PATH. Instale o Terraform antes de continuar.'
 }
 
@@ -44,37 +46,50 @@ foreach ($requiredVariable in @('RENDER_API_KEY', 'RENDER_OWNER_ID')) {
   }
 }
 
-Push-Location $EnvironmentDirectory
+function Invoke-Terraform {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string[]]$Arguments
+  )
 
-try {
-  switch ($Action) {
-    'init' {
-      terraform init
-    }
-    'validate' {
-      terraform fmt -check -recursive ../..
-      terraform validate
-    }
-    'plan' {
-      terraform plan -input=false -lock=false -out=production.tfplan
-      Write-Host ''
-      Write-Host 'Plan criado em production.tfplan. Revise o resultado antes de executar apply.' -ForegroundColor Cyan
-    }
-    'apply' {
-      if (-not (Test-Path $PlanFile)) {
-        throw 'production.tfplan nao encontrado. Execute primeiro: pnpm render:plan'
-      }
+  & $TerraformCommand.Source @Arguments
 
-      terraform apply production.tfplan
-    }
-    'output' {
-      terraform output frontend_urls
-    }
-    'destroy' {
-      terraform destroy
-    }
+  if ($LASTEXITCODE -ne 0) {
+    throw "Terraform falhou com exit code $LASTEXITCODE."
   }
 }
-finally {
-  Pop-Location
+
+switch ($Action) {
+  'init' {
+    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'init')
+  }
+  'validate' {
+    Invoke-Terraform @('fmt', '-check', '-recursive', $TerraformRoot)
+    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'validate')
+  }
+  'plan' {
+    Invoke-Terraform @(
+      "-chdir=$EnvironmentDirectory",
+      'plan',
+      '-input=false',
+      '-lock=false',
+      "-out=$PlanFile"
+    )
+
+    Write-Host ''
+    Write-Host "Plan criado em $PlanFile. Revise o resultado antes de executar apply." -ForegroundColor Cyan
+  }
+  'apply' {
+    if (-not (Test-Path $PlanFile)) {
+      throw 'production.tfplan nao encontrado. Execute primeiro: pnpm render:plan'
+    }
+
+    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'apply', $PlanFile)
+  }
+  'output' {
+    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'output', 'frontend_urls')
+  }
+  'destroy' {
+    Invoke-Terraform @("-chdir=$EnvironmentDirectory", 'destroy')
+  }
 }

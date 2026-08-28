@@ -28,7 +28,7 @@
       "scope": "payments",
       "active": {
         "version": "0.0.1",
-        "remoteEntry": "http://localhost:4203/remoteEntry.js"
+        "remoteEntry": "http://localhost:4293/remoteEntry.js"
       },
       "stable": {
         "version": "0.0.0",

@@ -17,7 +17,7 @@ variable "bff_region" {
 }
 
 variable "bff_plan" {
-  description = "Render Web Service plan used by the BFF. Review Render billing before apply."
+  description = "Render Web Service compute plan used by the BFF. The case intentionally uses the free tier."
   type        = string
-  default     = "starter"
+  default     = "free"
 }

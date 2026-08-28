@@ -4,30 +4,36 @@ import {
   registerApplication,
   start,
 } from 'single-spa';
+import { loadFederatedModule } from './runtime/federation-loader';
+import {
+  createRemoteFallback,
+  type RemoteLifecycleModule,
+} from './runtime/remote-fallback';
+import type { RemoteName } from './runtime/remote-manifest';
 
-registerApplication({
-  name: 'dashboard',
-  activeWhen: ['/dashboard'],
-  app: () => import('dashboard/lifecycles'),
-});
+const applications: Array<{ name: RemoteName; activeWhen: string }> = [
+  { name: 'dashboard', activeWhen: '/dashboard' },
+  { name: 'accounts', activeWhen: '/accounts' },
+  { name: 'payments', activeWhen: '/payments' },
+  { name: 'insurance', activeWhen: '/insurance' },
+];
 
-registerApplication({
-  name: 'accounts',
-  activeWhen: ['/accounts'],
-  app: () => import('accounts/lifecycles'),
-});
-
-registerApplication({
-  name: 'payments',
-  activeWhen: ['/payments'],
-  app: () => import('payments/lifecycles'),
-});
-
-registerApplication({
-  name: 'insurance',
-  activeWhen: ['/insurance'],
-  app: () => import('insurance/lifecycles'),
-});
+for (const application of applications) {
+  registerApplication({
+    name: application.name,
+    activeWhen: [application.activeWhen],
+    app: async () => {
+      try {
+        return await loadFederatedModule<RemoteLifecycleModule>(
+          application.name,
+          './lifecycles',
+        );
+      } catch (error) {
+        return createRemoteFallback(application.name, error);
+      }
+    },
+  });
+}
 
 function handleShellNavigation(event: MouseEvent) {
   if (
@@ -82,28 +88,12 @@ function syncShellNavigation() {
   }
 }
 
-function renderRemoteFailure(error: unknown) {
-  const root = document.getElementById('mfe-root');
-  const currentMfe = window.location.pathname.split('/')[1] || 'unknown';
-
-  console.error('[shell] single-spa error', error);
-
-  if (!root) {
-    return;
-  }
-
-  root.innerHTML = `
-    <section class="shell-runtime-error" role="alert">
-      <strong>${currentMfe} remote unavailable</strong>
-      <span>O Shell permaneceu online. Consulte o console e o remote correspondente para o diagnóstico.</span>
-    </section>
-  `;
-}
-
 document.addEventListener('click', handleShellNavigation);
 window.addEventListener('single-spa:routing-event', syncShellNavigation);
 
-addErrorHandler(renderRemoteFailure);
+addErrorHandler((error) => {
+  console.error('[shell] unhandled single-spa runtime error', error);
+});
 
 if (window.location.pathname === '/') {
   window.history.replaceState(null, '', '/dashboard');

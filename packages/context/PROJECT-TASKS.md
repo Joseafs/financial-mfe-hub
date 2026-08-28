@@ -4,7 +4,7 @@
 
 Este documento é o backlog técnico canônico do **Financial MFE Hub**.
 
-As tasks devem ser executadas de forma incremental, mantendo o repositório sempre compreensível, validável e coerente com o [`SDD.md`](./SDD.md).
+As tasks devem manter o repositório compreensível, validável e coerente com o [`SDD.md`](./SDD.md), o [`CI-CD.md`](./CI-CD.md) e as decisões registradas em `adr/`.
 
 Prefixo oficial:
 
@@ -81,7 +81,7 @@ Uma task está `DONE` quando, quando aplicável:
 
 ## 5. Evidências
 
-Exemplos de evidência:
+Exemplos:
 
 ```text
 pnpm lint
@@ -92,9 +92,86 @@ pnpm e2e
 terraform validate
 terraform plan
 URL publicada
+health check
+smoke test
 screenshot quando aplicável
 arquivo/teste que demonstra o comportamento
 ```
+
+---
+
+## 6. Estratégia de execução — Architecture Validation First
+
+A ordem numérica das tasks é mantida para rastreabilidade, mas **não representa obrigatoriamente a ordem cronológica de implementação**.
+
+A primeira milestone segue o [`ADR-001 — Architecture Validation First`](./adr/ADR-001-architecture-validation-first.md) e prioriza provar a plataforma antes do domínio financeiro.
+
+### Trilha crítica inicial
+
+```text
+FMH-002 workspace
+  ↓
+FMH-003 configs compartilhadas
+  ↓
+FMH-004 ambiente local
+  ↓
+FMH-005 shell
+  ↓
+FMH-006 estratégia Single-SPA
+  ↓
+FMH-007 dashboard stub azul
+  ↓
+FMH-008 accounts stub verde
+  ↓
+FMH-025 payments stub roxo
+  ↓
+FMH-030 insurance stub laranja
+  ↓
+FMH-009 fallback
+  ↓
+FMH-010 Module Federation
+  ↓
+FMH-011 shared dependencies
+  ↓
+FMH-012 módulo federado mínimo real
+  ↓
+FMH-013 runtime remote config
+  ↓
+FMH-018 BFF /health
+  ↓
+FMH-041 CI
+  ↓
+FMH-042 builds independentes
+  ↓
+FMH-043 Terraform + Render
+  ↓
+FMH-044 Static Sites
+  ↓
+FMH-045 BFF Web Service
+  ↓
+FMH-046 CD
+  ↓
+FMH-047 runtime manifest/cache
+  ↓
+FMH-049 smoke pós-deploy
+  ↓
+FMH-048 rollback
+  ↓
+ARCHITECTURE GATE ✅
+```
+
+Antes do Architecture Gate, os MFEs devem permanecer **stubs visuais mínimos**. Não é objetivo gastar tempo com telas completas, design system final, formulários sofisticados ou regras financeiras extensas.
+
+Identidade visual inicial:
+
+```text
+Dashboard -> azul
+Accounts  -> verde
+Payments  -> roxo
+Insurance -> laranja
+```
+
+Depois do gate, os stubs evoluem incrementalmente para os domínios reais.
 
 ---
 
@@ -110,21 +187,24 @@ arquivo/teste que demonstra o comportamento
 - `README.en.md` em inglês;
 - `packages/context/README.md`;
 - `packages/context/SDD.md`;
+- `packages/context/CI-CD.md`;
 - `packages/context/PROJECT-TASKS.md`;
+- `ADR-001 — Architecture Validation First`;
 - arquitetura principal fiel a **Terraform + Render**;
-- AWS documentada somente como trilha opcional comparativa;
+- AWS somente como trilha opcional comparativa;
 - Formik + Zod + Context API definidos;
-- i18n definido com PT-BR padrão e inglês alternativo;
-- fluxo de tasks e commits definido.
+- i18n PT-BR/EN definido;
+- estratégia CI/CD e fluxo de tasks definidos.
 
 ### Aceite
 
 - SDD diferencia Single-SPA, Module Federation e Turborepo;
-- Render é a infraestrutura principal do case;
-- Terraform usa o provider `render-oss/render` como referência principal;
+- Render é a infraestrutura principal;
+- Terraform usa `render-oss/render` como provider principal;
 - AWS não bloqueia a conclusão do case;
 - README PT-BR e inglês refletem a mesma arquitetura;
-- backlog está sincronizado com o SDD.
+- Architecture Validation First está registrada;
+- backlog está sincronizado com as decisões.
 
 ---
 
@@ -143,13 +223,14 @@ arquivo/teste que demonstra o comportamento
 - `turbo.json`;
 - `.gitignore`;
 - versão mínima de Node e pnpm;
-- scripts raiz.
+- scripts raiz;
+- diretórios `apps/*` e `packages/*` preparados para evolução incremental.
 
 ### Aceite
 
 - `pnpm install` executa sem erro;
-- workspace reconhece `apps/*` e `packages/*`;
-- existem pipelines iniciais de `lint`, `typecheck`, `test` e `build`.
+- workspace reconhece apps/packages;
+- pipelines iniciais de `lint`, `typecheck`, `test` e `build` existem.
 
 ---
 
@@ -170,7 +251,7 @@ packages/typescript-config
 
 - TypeScript strict;
 - apps/packages estendem configs comuns;
-- regras não são duplicadas desnecessariamente.
+- regras não são duplicadas sem necessidade.
 
 ---
 
@@ -192,7 +273,7 @@ packages/typescript-config
 
 - nenhum MFE importa `src` interno de outro;
 - `pnpm dev` ou equivalente inicia o ambiente local de forma reproduzível;
-- Shell consegue resolver remotes locais por configuração.
+- Shell resolve remotes locais por configuração.
 
 ---
 
@@ -208,7 +289,8 @@ packages/typescript-config
 
 - Shell inicia localmente;
 - Single-SPA possui bootstrap funcional;
-- layout global não contém regra de domínio.
+- layout global não contém regra de domínio;
+- Shell pode hospedar stubs sem exigir UI final.
 
 ---
 
@@ -224,29 +306,44 @@ Comparar registro manual vs `single-spa-layout` e registrar a escolha em SDD/ADR
 
 ---
 
-## FMH-007 — Criar Dashboard MFE mínimo
+## FMH-007 — Criar Dashboard MFE como architecture stub
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-005
 
+### Identidade
+
+```text
+cor: azul
+```
+
 ### Aceite
 
 - `bootstrap`, `mount` e `unmount` funcionam;
-- `/dashboard` possui owner explícito.
+- `/dashboard` possui owner explícito;
+- bloco identifica `dashboard-mfe`, versão/build e ambiente;
+- nenhuma regra financeira relevante é necessária nesta etapa.
 
 ---
 
-## FMH-008 — Criar Accounts MFE mínimo
+## FMH-008 — Criar Accounts MFE como architecture stub
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-007
 
+### Identidade
+
+```text
+cor: verde
+```
+
 ### Aceite
 
 - `/accounts` possui owner explícito;
-- navegação Dashboard -> Accounts monta/desmonta corretamente.
+- navegação Dashboard -> Accounts monta/desmonta corretamente;
+- bloco identifica `accounts-mfe`, versão/build e ambiente.
 
 ---
 
@@ -293,16 +390,20 @@ Comparar registro manual vs `single-spa-layout` e registrar a escolha em SDD/ADR
 
 ---
 
-## FMH-012 — Criar primeiro módulo federado real
+## FMH-012 — Criar primeiro módulo federado mínimo real
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-010, FMH-011
 
+### Objetivo
+
+Provar federation com um caso pequeno e observável antes de qualquer composição de produto complexa.
+
 ### Aceite
 
-- existe caso de uso real, não apenas configuração vazia;
-- contrato público do módulo é explícito;
+- existe módulo público realmente consumido em runtime;
+- contrato público é explícito;
 - consumidor não acessa internals do remote.
 
 ---
@@ -322,6 +423,8 @@ Comparar registro manual vs `single-spa-layout` e registrar a escolha em SDD/ADR
 ---
 
 # Fase 4 — Packages compartilhados
+
+> Esta fase funcional pode ser aprofundada após o Architecture Gate, exceto packages estritamente necessários para a validação técnica.
 
 ## FMH-014 — Criar `packages/contracts`
 
@@ -393,6 +496,10 @@ Comparar registro manual vs `single-spa-layout` e registrar a escolha em SDD/ADR
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-002
+
+### Architecture Validation
+
+Nesta primeira passagem, o BFF pode ser mínimo. O requisito é provar execução, health check, logs e deploy.
 
 ### Aceite
 
@@ -490,11 +597,23 @@ INTERNAL_ERROR
 
 # Fase 7 — Payments
 
-## FMH-025 — Criar Payments MFE
+## FMH-025 — Criar Payments MFE como architecture stub
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-008
+
+### Identidade
+
+```text
+cor: roxo
+```
+
+### Aceite inicial
+
+- `/payments` monta/desmonta independentemente;
+- bloco identifica `payments-mfe`, versão/build e ambiente;
+- formulário de negócio não é requisito desta task.
 
 ---
 
@@ -561,11 +680,23 @@ Somente regras portáveis entram no schema compartilhado. Saldo, existência da 
 
 # Fase 8 — Insurance e Dashboard agregado
 
-## FMH-030 — Criar Insurance MFE
+## FMH-030 — Criar Insurance MFE como architecture stub
 
 **Status:** `BACKLOG`
 
 **Depende de:** FMH-008
+
+### Identidade
+
+```text
+cor: laranja
+```
+
+### Aceite inicial
+
+- `/insurance` monta/desmonta independentemente;
+- bloco identifica `insurance-mfe`, versão/build e ambiente;
+- simulações/fluxos de negócio não são requisito desta task.
 
 ---
 
@@ -710,19 +841,30 @@ Definir sessão/autenticação considerando Shell/MFEs/BFF em serviços Render d
 
 # Fase 12 — CI/CD, Render e Terraform
 
+> Apesar do número da fase, estas tasks são executadas **cedo** pela trilha Architecture Validation First.
+
 ## FMH-041 — Criar pipeline CI
 
 **Status:** `BACKLOG`
+
+**Depende de:** FMH-002
 
 ### Gates
 
 ```text
 pnpm install --frozen-lockfile
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+### Aceite
+
+- PR executa gates obrigatórios;
+- falha bloqueia merge quando branch protection estiver ativa;
+- workflows usam permissões mínimas necessárias.
 
 ---
 
@@ -734,7 +876,9 @@ pnpm build
 
 ### Aceite
 
-Cada app pode ser buildada isoladamente via Turborepo.
+- cada app pode ser buildada isoladamente via Turborepo;
+- mudança em um MFE não exige build/deploy indiscriminado de todos os demais;
+- dependências compartilhadas propagam impacto corretamente.
 
 ---
 
@@ -771,8 +915,9 @@ terraform plan
 ### Aceite
 
 - Shell e cada MFE possuem serviço independente;
-- URLs necessárias podem alimentar runtime config;
-- deploy de um MFE não exige deploy dos demais.
+- URLs podem alimentar runtime config;
+- deploy de um MFE não exige deploy dos demais;
+- os quatro stubs coloridos ficam acessíveis no ambiente demo.
 
 ---
 
@@ -800,6 +945,12 @@ terraform plan
 
 Comparar auto-deploy nativo do Render vs deploy controlado pelo GitHub Actions e registrar a escolha.
 
+### Aceite
+
+- deploy só ocorre após checks definidos;
+- serviço afetado pode ser publicado sem acoplar todos os demais;
+- origem de cada release é rastreável ao commit.
+
 ---
 
 ## FMH-047 — Configurar runtime manifest, cache e URLs de produção
@@ -821,12 +972,13 @@ Comparar auto-deploy nativo do Render vs deploy controlado pelo GitHub Actions e
 
 **Status:** `BACKLOG`
 
-**Depende de:** FMH-047
+**Depende de:** FMH-047, FMH-049
 
 ### Aceite
 
 - um remote pode voltar para versão conhecida sem republicar todos os MFEs;
-- procedimento fica documentado.
+- procedimento fica documentado;
+- rollback pode ser demonstrado usando os stubs sem depender de fluxo financeiro complexo.
 
 ---
 
@@ -840,10 +992,39 @@ Comparar auto-deploy nativo do Render vs deploy controlado pelo GitHub Actions e
 
 ```text
 Shell responde
+Dashboard monta
+Accounts monta
+Payments monta
+Insurance monta
 remoteEntry responde
-MFE monta
 BFF /health responde
 ```
+
+### Aceite
+
+- falha produz diagnóstico claro;
+- smoke pode ser repetido após deploy/rollback;
+- resultado pode ser usado como evidência do Architecture Gate.
+
+---
+
+# Architecture Gate
+
+O gate é considerado atendido quando FMH-002/003/004/005/006/007/008/025/030/009/010/011/012/013/018/041/042/043/044/045/046/047/049/048 estiverem concluídas e houver evidência de:
+
+- múltiplos MFEs independentes publicados;
+- lifecycle Single-SPA funcional;
+- Module Federation real mínimo;
+- runtime config de remotes;
+- fallback de remote;
+- BFF saudável;
+- CI/CD funcional;
+- Terraform provisionando Render;
+- deploy independente;
+- smoke test pós-deploy;
+- rollback demonstrável.
+
+Somente então a implementação de produto passa a ser a prioridade principal.
 
 ---
 
@@ -878,6 +1059,7 @@ BFF /health responde
 - Zod compartilhado;
 - Formik/Context API;
 - Render + Terraform;
+- Architecture Validation First;
 - performance, segurança e operação.
 
 ---
@@ -891,7 +1073,7 @@ BFF /health responde
 ### Aceite
 
 - os dois READMEs refletem o estado realmente implementado;
-- links, arquitetura e URLs públicas estão corretos.
+- links, arquitetura, cores e URLs públicas estão corretos.
 
 ---
 
@@ -926,4 +1108,4 @@ Esta task não bloqueia a conclusão do Financial MFE Hub. Só deve ser executad
 FMH-002 — Inicializar pnpm workspace e Turborepo
 ```
 
-A fundação documental está concluída. A partir daqui, novas decisões arquiteturais relevantes devem ser registradas no SDD ou em ADR antes/junto da implementação correspondente.
+A implementação começa pela plataforma mínima. O objetivo imediato não é construir uma aplicação financeira grande: é chegar ao **Architecture Gate** com o menor volume de código de produto possível e a maior evidência arquitetural possível.

@@ -1,0 +1,7 @@
+{
+  "extends": "@financial-mfe/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "include": ["src"]
+}

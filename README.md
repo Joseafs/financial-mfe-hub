@@ -17,20 +17,20 @@ O projeto explora:
 - composição runtime com Webpack Module Federation;
 - monorepo com pnpm + Turborepo;
 - contratos Zod compartilhados entre front-end, BFF e testes;
-- formulários com React Hook Form + Zod;
+- formulários com Formik + Zod;
+- Context API para estado de fluxo/domínio local;
 - BFF em Fastify + Node.js;
 - internacionalização com PT-BR como idioma padrão e inglês como alternativa;
 - testes unitários, integração, contrato e E2E;
 - Core Web Vitals, acessibilidade e observabilidade;
 - CI/CD com GitHub Actions;
-- infraestrutura AWS declarada com Terraform.
+- infraestrutura principal no Render declarada com Terraform.
 
 ## Arquitetura
 
 ```mermaid
 flowchart LR
-  User["Usuário"] --> CDN["CloudFront"]
-  CDN --> Static["S3\nShell + MFEs"]
+  User["Usuário"] --> Static["Render Static Sites\nShell + MFEs"]
   Static --> Shell["Shell / Root Config\nSingle-SPA"]
 
   Shell --> Dashboard["Dashboard MFE"]
@@ -43,14 +43,12 @@ flowchart LR
   Payments -. "Module Federation" .-> Shared
   Insurance -. "Module Federation" .-> Shared
 
-  Dashboard --> API["API Gateway"]
-  Accounts --> API
-  Payments --> API
-  Insurance --> API
+  Dashboard --> BFF["Render Web Service\nFastify BFF"]
+  Accounts --> BFF
+  Payments --> BFF
+  Insurance --> BFF
 
-  API --> BFF["Fastify BFF\nAWS Lambda"]
   BFF --> Services["Serviços financeiros fictícios"]
-  BFF --> Logs["CloudWatch"]
 
   Contracts["packages/contracts\nZod"] --> Dashboard
   Contracts --> Accounts
@@ -64,11 +62,8 @@ flowchart LR
   I18n --> Payments
   I18n --> Insurance
 
-  Terraform["Terraform"] -. "provisiona" .-> CDN
-  Terraform -. "provisiona" .-> Static
-  Terraform -. "provisiona" .-> API
+  Terraform["Terraform\nrender-oss/render"] -. "provisiona" .-> Static
   Terraform -. "provisiona" .-> BFF
-  Terraform -. "provisiona" .-> Logs
 ```
 
 ## Responsabilidades principais
@@ -83,7 +78,9 @@ flowchart LR
 
 **Zod** define contratos runtime reutilizados entre front-end, BFF e testes. O front valida cedo por UX; o servidor valida novamente e permanece a autoridade.
 
-**Terraform** descreve a infraestrutura AWS como código e permite revisar mudanças com `plan` antes de qualquer aplicação.
+**Formik** controla estado e lifecycle dos formulários. O projeto mantém Zod como fonte canônica das regras portáveis e utiliza Context API dentro de owners claros.
+
+**Terraform** descreve a infraestrutura realmente utilizada no Render, permitindo revisar mudanças com `plan` antes de qualquer aplicação.
 
 ## Stack planejada
 
@@ -97,8 +94,9 @@ flowchart LR
 - Module Federation
 - React Router
 - TanStack Query
+- Context API
 - Zustand somente para estado client-side realmente global
-- React Hook Form
+- Formik
 - Zod
 - i18next + react-i18next
 
@@ -126,14 +124,12 @@ flowchart LR
 
 ### Infraestrutura e entrega
 
-- AWS S3
-- AWS CloudFront
-- AWS Lambda
-- Amazon API Gateway
-- Amazon CloudWatch
-- AWS Budgets
-- Terraform
+- Render Static Sites
+- Render Web Service
+- Terraform com provider `render-oss/render`
 - GitHub Actions
+
+AWS permanece como trilha opcional de comparação arquitetural, não como requisito do funcionamento principal.
 
 ## Estrutura alvo
 
@@ -158,10 +154,9 @@ packages/
 infrastructure/
 └── terraform/
     ├── modules/
-    │   ├── frontend/
-    │   ├── bff/
-    │   ├── observability/
-    │   └── budget/
+    │   ├── static-site/
+    │   ├── web-service/
+    │   └── shared/
     └── environments/
         └── production/
 ```
@@ -170,7 +165,7 @@ infrastructure/
 
 ```mermaid
 flowchart LR
-  Contracts["Schema Zod único"] --> Form["React Hook Form"]
+  Contracts["Schema Zod único"] --> Form["Formik"]
   Contracts --> BFF["Fastify BFF"]
   Form -->|"feedback imediato"| User["Usuário"]
   Form -->|"request"| BFF
@@ -184,6 +179,12 @@ Exemplos:
 - saldo disponível suficiente: regra de domínio/BFF;
 - autorização para executar operação: regra do BFF.
 
+## Estado e Context API
+
+Context API é utilizada dentro de um fluxo ou domínio com ownership claro, por exemplo dentro de `payments-mfe`.
+
+Ela não deve virar um contexto global compartilhando internals de Accounts, Payments e Insurance. Comunicação cross-MFE deve preferir URL, BFF/server state, eventos públicos ou contratos federados explícitos.
+
 ## Internacionalização
 
 O produto usa **PT-BR como idioma padrão** e **inglês (`en`) como alternativa**.
@@ -192,22 +193,42 @@ A preferência de idioma é coordenada pelo Shell, enquanto cada MFE mantém seu
 
 ## Estratégia de deploy
 
-O objetivo é manter deploy independente sem criar infraestrutura desnecessariamente cara.
+O ambiente oficial do case é o Render.
 
 ```text
 GitHub Actions
       │
       ├── shell ───────────────┐
       ├── dashboard-mfe ───────┤
-      ├── accounts-mfe ────────┤──> S3 -> CloudFront
+      ├── accounts-mfe ────────┤──> Render Static Sites
       ├── payments-mfe ────────┤
       └── insurance-mfe ───────┘
 
-      └── bff -> Lambda -> API Gateway
-                         └-> CloudWatch
+      └── bff ───────────────────> Render Web Service
 ```
 
-Os assets podem compartilhar a mesma infraestrutura física por prefixes/versionamento, mas cada aplicação possui pipeline, artefato e promoção independentes.
+Cada aplicação possui serviço, artefato e evolução independentes. O Shell resolve as URLs dos remotes por configuração de ambiente.
+
+## Terraform
+
+A infraestrutura Render será representada em `infrastructure/terraform` usando o provider oficial `render-oss/render`.
+
+O fluxo previsto inclui:
+
+```text
+terraform fmt -check
+terraform validate
+terraform plan
+terraform apply
+```
+
+`plan` faz parte da revisão. `apply` deve ser protegido e secrets nunca são versionados.
+
+## Case opcional AWS
+
+Após a arquitetura principal estar funcional no Render, uma trilha opcional poderá comparar a mesma solução com primitives AWS, como S3, CloudFront, Lambda, API Gateway e CloudWatch.
+
+Essa trilha não é requisito para considerar o projeto concluído.
 
 ## Documentação
 

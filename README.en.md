@@ -89,7 +89,7 @@ flowchart LR
 <details>
 <summary><strong>What would this architecture look like on AWS?</strong></summary>
 
-The infrastructure actually used by the POC remains **Terraform + Render**. The diagram below is only an architectural comparison that is useful for discussing portability and trade-offs in an interview; it **does not represent a published AWS environment from this repository**.
+The infrastructure actually used by the POC remains **Terraform + Render**. The diagram below shows an equivalent AWS alternative for comparing portability and trade-offs; it **does not represent a published AWS environment from this repository**.
 
 ```mermaid
 flowchart LR

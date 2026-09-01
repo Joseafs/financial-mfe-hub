@@ -2,253 +2,95 @@
 
 [Português](./README.md) | [English](./README.en.md)
 
-Case full-stack de arquitetura para um **hub financeiro fictício**. O projeto demonstra como **Micro Frontends**, contratos compartilhados, regras de negócio, interface, BFF, internacionalização, testes, observabilidade, CI/CD e infraestrutura podem evoluir juntos dentro de um monorepo.
+POC arquitetural de um **hub financeiro fictício** construída para demonstrar, de forma pequena e observável, uma arquitetura de **Micro Frontends com React, TypeScript, Single-SPA e Webpack Module Federation**.
 
 > Projeto educacional e de portfólio. Os dados, regras e fluxos financeiros são fictícios e não representam uma instituição financeira real.
 
-## Objetivo
+## Demo publicada
 
-Construir um case técnico próximo de cenários corporativos de alta criticidade, com responsabilidades explícitas, deploy independente por aplicação e decisões arquiteturais documentadas antes da implementação.
+A POC pública está hospedada no Render. A melhor entrada para entender o case é o **Shell**, que compõe os Micro Frontends e preserva a visão arquitetural.
 
-O projeto explora:
+| Ambiente | Link | Papel |
+| --- | --- | --- |
+| **Shell / Demo principal** | [financial-mfe-hub-production-shell.onrender.com](https://financial-mfe-hub-production-shell.onrender.com) | composição Single-SPA |
+| **Architecture Health** | [abrir console arquitetural](https://financial-mfe-hub-production-shell.onrender.com/architecture-health) | diagnóstico da POC pelo Shell |
+| Dashboard MFE | [abrir ambiente](https://financial-mfe-hub-production-dashboard.onrender.com) | remote independente |
+| Accounts MFE | [abrir ambiente](https://financial-mfe-hub-production-accounts.onrender.com) | remote independente |
+| Payments MFE | [abrir ambiente](https://financial-mfe-hub-production-payments.onrender.com) | remote independente |
+| Insurance MFE | [abrir ambiente](https://financial-mfe-hub-production-insurance.onrender.com) | remote independente |
 
-- React + TypeScript em múltiplos Micro Frontends;
-- orquestração com Single-SPA;
-- composição runtime com Webpack Module Federation;
-- monorepo com pnpm + Turborepo;
-- contratos Zod compartilhados entre front-end, BFF e testes;
-- formulários com Formik + Zod;
-- Context API para estado de fluxo/domínio local;
-- BFF em Fastify + Node.js;
-- internacionalização com PT-BR como idioma padrão e inglês como alternativa;
-- testes unitários, integração, contrato e E2E;
-- Core Web Vitals, acessibilidade e observabilidade;
-- CI/CD com GitHub Actions;
-- infraestrutura principal no Render declarada com Terraform.
+> Os links diretos dos MFEs são endpoints de diagnóstico dos remotes. A experiência composta deve ser observada pelo Shell.
+
+## O que esta POC demonstra
+
+- um único Shell controlando a navegação e o lifecycle com **Single-SPA**;
+- quatro Micro Frontends independentes;
+- módulos carregados em runtime por **Webpack Module Federation**;
+- `React` e `React DOM` compartilhados como singletons;
+- runtime manifest para resolver os remotes sem acoplamento de domínio;
+- fallback de remote sem derrubar a SPA inteira;
+- builds independentes via **pnpm + Turborepo**;
+- CI com GitHub Actions;
+- infraestrutura dos ambientes declarada com **Terraform + Render**;
+- identidade visual distinta por MFE para tornar mount/unmount e ownership fáceis de demonstrar;
+- uma rota técnica `/architecture-health` preservada para explicar e diagnosticar a arquitetura mesmo que o case evolua no futuro.
 
 ## Arquitetura
 
-As cores dos MFEs no diagrama também são utilizadas durante a fase inicial de validação arquitetural para facilitar a identificação visual de qual aplicação foi montada.
-
 ```mermaid
 flowchart LR
-  User["Usuário"] --> Static["Render Static Sites\nShell + MFEs"]
-  Static --> Shell["Shell / Root Config\nSingle-SPA"]
+  User["Usuário"] --> Shell["Shell\nSingle-SPA"]
 
   Shell --> Dashboard["Dashboard MFE"]
   Shell --> Accounts["Accounts MFE"]
   Shell --> Payments["Payments MFE"]
   Shell --> Insurance["Insurance MFE"]
 
-  Dashboard -. "Module Federation" .-> Shared["Módulos federados"]
-  Accounts -. "Module Federation" .-> Shared
-  Payments -. "Module Federation" .-> Shared
-  Insurance -. "Module Federation" .-> Shared
+  Dashboard -. "Module Federation" .-> Runtime["Runtime remotes"]
+  Accounts -. "Module Federation" .-> Runtime
+  Payments -. "Module Federation" .-> Runtime
+  Insurance -. "Module Federation" .-> Runtime
 
-  Dashboard --> BFF["Render Web Service\nFastify BFF"]
-  Accounts --> BFF
-  Payments --> BFF
-  Insurance --> BFF
+  Shell --> Manifest["Runtime Manifest"]
 
-  BFF --> Services["Serviços financeiros fictícios"]
-
-  Contracts["packages/contracts\nZod"] --> Dashboard
-  Contracts --> Accounts
-  Contracts --> Payments
-  Contracts --> Insurance
-  Contracts --> BFF
-
-  I18n["packages/i18n\nPT-BR / EN"] --> Shell
-  I18n --> Dashboard
-  I18n --> Accounts
-  I18n --> Payments
-  I18n --> Insurance
-
-  Terraform["Terraform\nrender-oss/render"] -. "provisiona" .-> Static
-  Terraform -. "provisiona" .-> BFF
-
-  classDef user fill:#374151,stroke:#9CA3AF,color:#FFFFFF;
-  classDef render fill:#0F766E,stroke:#5EEAD4,color:#FFFFFF;
-  classDef shell fill:#0F172A,stroke:#38BDF8,color:#FFFFFF;
-  classDef dashboard fill:#1D4ED8,stroke:#93C5FD,color:#FFFFFF;
-  classDef accounts fill:#15803D,stroke:#86EFAC,color:#FFFFFF;
-  classDef payments fill:#7C3AED,stroke:#C4B5FD,color:#FFFFFF;
-  classDef insurance fill:#C2410C,stroke:#FDBA74,color:#FFFFFF;
-  classDef shared fill:#334155,stroke:#94A3B8,color:#FFFFFF;
-  classDef contracts fill:#854D0E,stroke:#FDE68A,color:#FFFFFF;
-  classDef i18n fill:#0E7490,stroke:#67E8F9,color:#FFFFFF;
-  classDef bff fill:#4338CA,stroke:#A5B4FC,color:#FFFFFF;
-  classDef services fill:#374151,stroke:#D1D5DB,color:#FFFFFF;
-  classDef terraform fill:#5B21B6,stroke:#C4B5FD,color:#FFFFFF;
-
-  class User user;
-  class Static render;
-  class Shell shell;
-  class Dashboard dashboard;
-  class Accounts accounts;
-  class Payments payments;
-  class Insurance insurance;
-  class Shared shared;
-  class Contracts contracts;
-  class I18n i18n;
-  class BFF bff;
-  class Services services;
-  class Terraform terraform;
+  Terraform["Terraform"] -. "provisiona" .-> Render["Render Static Sites"]
+  Render --> Shell
+  Render --> Dashboard
+  Render --> Accounts
+  Render --> Payments
+  Render --> Insurance
 ```
 
-<details>
-<summary><strong>Como seria essa arquitetura na AWS?</strong></summary>
+### Responsabilidades
 
-A arquitetura principal do projeto continua sendo **Terraform + Render**. A visão abaixo existe apenas como comparação arquitetural e não representa a infraestrutura utilizada pelo case principal.
+**Single-SPA** decide qual aplicação deve montar ou desmontar conforme a rota.
 
-```mermaid
-flowchart LR
-  User["Usuário"] --> CDN["CloudFront"]
-  CDN --> Static["S3\nShell + MFEs"]
-  Static --> Shell["Shell / Root Config\nSingle-SPA"]
+**Module Federation** resolve e carrega o contrato público dos remotes em runtime.
 
-  Shell --> Dashboard["Dashboard MFE"]
-  Shell --> Accounts["Accounts MFE"]
-  Shell --> Payments["Payments MFE"]
-  Shell --> Insurance["Insurance MFE"]
+**Turborepo** coordena tarefas e dependências do monorepo; ele não é o mecanismo de composição dos Micro Frontends.
 
-  Dashboard -. "Module Federation" .-> Shared["Módulos federados"]
-  Accounts -. "Module Federation" .-> Shared
-  Payments -. "Module Federation" .-> Shared
-  Insurance -. "Module Federation" .-> Shared
+**Terraform** descreve a infraestrutura Render e permite revisar mudanças antes de aplicá-las.
 
-  Dashboard --> API["API Gateway"]
-  Accounts --> API
-  Payments --> API
-  Insurance --> API
+## Identidade da POC
 
-  API --> BFF["Lambda\nFastify BFF"]
-  BFF --> Services["Serviços financeiros fictícios"]
-  BFF --> Observability["CloudWatch\nlogs + métricas"]
-
-  Terraform["Terraform\nAWS Provider"] -. "provisiona" .-> CDN
-  Terraform -. "provisiona" .-> Static
-  Terraform -. "provisiona" .-> API
-  Terraform -. "provisiona" .-> BFF
-  Terraform -. "provisiona" .-> Observability
-
-  classDef user fill:#374151,stroke:#9CA3AF,color:#FFFFFF;
-  classDef aws fill:#B45309,stroke:#FCD34D,color:#FFFFFF;
-  classDef shell fill:#0F172A,stroke:#38BDF8,color:#FFFFFF;
-  classDef dashboard fill:#1D4ED8,stroke:#93C5FD,color:#FFFFFF;
-  classDef accounts fill:#15803D,stroke:#86EFAC,color:#FFFFFF;
-  classDef payments fill:#7C3AED,stroke:#C4B5FD,color:#FFFFFF;
-  classDef insurance fill:#C2410C,stroke:#FDBA74,color:#FFFFFF;
-  classDef shared fill:#334155,stroke:#94A3B8,color:#FFFFFF;
-  classDef bff fill:#4338CA,stroke:#A5B4FC,color:#FFFFFF;
-  classDef services fill:#374151,stroke:#D1D5DB,color:#FFFFFF;
-  classDef terraform fill:#5B21B6,stroke:#C4B5FD,color:#FFFFFF;
-
-  class User user;
-  class CDN,Static,API,Observability aws;
-  class Shell shell;
-  class Dashboard dashboard;
-  class Accounts accounts;
-  class Payments payments;
-  class Insurance insurance;
-  class Shared shared;
-  class BFF bff;
-  class Services services;
-  class Terraform terraform;
-```
-
-| Case principal | Alternativa AWS |
-| --- | --- |
-| Render Static Sites | S3 + CloudFront |
-| Render Web Service | Lambda + API Gateway |
-| Logs e métricas do Render | CloudWatch |
-| Terraform `render-oss/render` | Terraform AWS Provider |
-
-Essa trilha poderá ser implementada futuramente para comparar **PaaS vs cloud primitives**, custo operacional, deploy e portabilidade.
-
-</details>
-
-## Architecture Validation First
-
-Antes de construir uma aplicação financeira grande, o projeto valida a arquitetura com a menor quantidade possível de código de produto.
-
-A primeira milestone utiliza **stubs visuais simples e coloridos**:
-
-| Aplicação | Cor inicial | Objetivo da fase |
+| Aplicação | Cor | Rota |
 | --- | --- | --- |
-| `dashboard-mfe` | azul | provar mount/unmount e rota |
-| `accounts-mfe` | verde | provar segundo remote independente |
-| `payments-mfe` | roxo | provar evolução paralela de domínio |
-| `insurance-mfe` | laranja | provar escala da composição |
+| `dashboard-mfe` | azul | `/dashboard` |
+| `accounts-mfe` | verde | `/accounts` |
+| `payments-mfe` | roxo | `/payments` |
+| `insurance-mfe` | laranja | `/insurance` |
 
-Cada stub mostra apenas informações úteis para diagnóstico, como nome do MFE, versão/build e ambiente. A identidade visual inicial não define o design system final.
+As cores são deliberadamente simples: o objetivo desta etapa é tornar **ownership, mount/unmount, isolamento e fallback** imediatamente visíveis, não construir um design system final.
 
-```text
-workspace
-  ↓
-shell + MFEs coloridos
-  ↓
-BFF /health
-  ↓
-CI/CD
-  ↓
-Terraform + Render
-  ↓
-runtime config
-  ↓
-smoke test + rollback
-  ↓
-ARCHITECTURE GATE ✅
-  ↓
-evolução funcional dos domínios
-```
-
-A fase inicial deve provar Single-SPA, Module Federation, builds/deploys independentes, runtime remotes, fallback, CI/CD, Terraform, Render, smoke tests e rollback **antes** de investir em regras de negócio, dashboards ou formulários completos.
-
-A decisão está registrada em [`ADR-001 — Architecture Validation First`](./packages/context/adr/ADR-001-architecture-validation-first.md).
-
-## Responsabilidades principais
-
-**Single-SPA** controla o ciclo de vida e decide quais aplicações são montadas conforme rota e contexto.
-
-**Module Federation** permite expor e consumir módulos públicos em runtime, mantendo contratos explícitos entre host e remotes.
-
-**Turborepo** coordena dependências, cache e tarefas do monorepo. Ele não substitui a arquitetura de Micro Frontends.
-
-**Fastify BFF** centraliza adaptação de dados, validação autoritativa, autenticação, autorização, composição de respostas e isolamento de serviços downstream.
-
-**Zod** define contratos runtime reutilizados entre front-end, BFF e testes. O front valida cedo por UX; o servidor valida novamente e permanece a autoridade.
-
-**Formik** controla estado e lifecycle dos formulários. O projeto mantém Zod como fonte canônica das regras portáveis e utiliza Context API dentro de owners claros.
-
-**Terraform** descreve a infraestrutura realmente utilizada no Render, permitindo revisar mudanças com `plan` antes de qualquer aplicação.
-
-## Stack planejada
+## Stack utilizada na POC
 
 ### Front-end
 
 - React
 - TypeScript
-- Tailwind CSS
 - Single-SPA
 - Webpack 5
 - Module Federation
-- React Router
-- TanStack Query
-- Context API
-- Zustand somente para estado client-side realmente global
-- Formik
-- Zod
-- i18next + react-i18next
-
-### BFF
-
-- Node.js
-- Fastify
-- TypeScript
-- Zod
-- Swagger / OpenAPI
-- logging estruturado
 
 ### Monorepo e qualidade
 
@@ -256,132 +98,128 @@ A decisão está registrada em [`ADR-001 — Architecture Validation First`](./p
 - Turborepo
 - ESLint
 - Prettier
-- Jest
-- React Testing Library
-- MSW
-- Faker
-- Playwright
-- Storybook
-
-### Infraestrutura e entrega
-
-- Render Static Sites
-- Render Web Service
-- Terraform com provider `render-oss/render`
 - GitHub Actions
 
-AWS permanece como trilha opcional de comparação arquitetural, não como requisito do funcionamento principal.
+### Infraestrutura
 
-## Estrutura alvo
+- Render Static Sites
+- Terraform
+- provider `render-oss/render`
+
+### BFF / evolução registrada
+
+O repositório também contém a fundação de um **Fastify BFF**, health check, configuração tipada, infraestrutura de Web Service, estratégia de smoke test e backlog para Swagger/OpenAPI. Essa evolução permanece documentada, mas não é necessária para entender a POC pública que está sendo encerrada como demonstrativo arquitetural.
+
+## Estrutura principal
 
 ```text
 apps/
-├── shell/                 root config e orquestração Single-SPA
-├── dashboard-mfe/         visão consolidada
-├── accounts-mfe/          contas, cartões e limites
-├── payments-mfe/          PIX, boleto e transferências fictícias
-├── insurance-mfe/         seguros e simulações fictícias
-└── bff/                   Fastify BFF
+├── shell/
+├── dashboard-mfe/
+├── accounts-mfe/
+├── payments-mfe/
+├── insurance-mfe/
+└── bff/
 
 packages/
-├── context/               SDD, ADRs, decisões e fluxo de tasks
-├── contracts/             schemas Zod e tipos inferidos
-├── ui/                    componentes e tokens compartilhados
-├── auth/                  contratos e primitivas de autenticação
-├── i18n/                  configuração e contratos de idioma
+├── context/
 ├── eslint-config/
 └── typescript-config/
 
 infrastructure/
 └── terraform/
     ├── modules/
-    │   ├── static-site/
-    │   ├── web-service/
-    │   └── shared/
     └── environments/
         └── production/
 ```
 
-## Validação compartilhada
+## Executar localmente
 
-```mermaid
-flowchart LR
-  Contracts["Schema Zod único"] --> Form["Formik"]
-  Contracts --> BFF["Fastify BFF"]
-  Form -->|"feedback imediato"| User["Usuário"]
-  Form -->|"request"| BFF
-  BFF -->|"validação autoritativa"| Domain["Regras / serviços"]
+Requisitos:
+
+- Node.js 22+
+- pnpm 10+
+
+```bash
+pnpm install
+pnpm dev
 ```
 
-Exemplos:
-
-- `valor > 0`: contrato Zod compartilhado;
-- formato de documento ou e-mail: contrato Zod compartilhado;
-- saldo disponível suficiente: regra de domínio/BFF;
-- autorização para executar operação: regra do BFF.
-
-## Estado e Context API
-
-Context API é utilizada dentro de um fluxo ou domínio com ownership claro, por exemplo dentro de `payments-mfe`.
-
-Ela não deve virar um contexto global compartilhando internals de Accounts, Payments e Insurance. Comunicação cross-MFE deve preferir URL, BFF/server state, eventos públicos ou contratos federados explícitos.
-
-## Internacionalização
-
-O produto usa **PT-BR como idioma padrão** e **inglês (`en`) como alternativa**.
-
-A preferência de idioma é coordenada pelo Shell, enquanto cada MFE mantém seus próprios namespaces de tradução. Alterações de idioma devem utilizar um contrato público e não depender de stores internas de outro MFE.
-
-## Estratégia de deploy
-
-O ambiente oficial do case é o Render.
+Ambientes locais:
 
 ```text
-GitHub Actions
-      │
-      ├── shell ───────────────┐
-      ├── dashboard-mfe ───────┤
-      ├── accounts-mfe ────────┤──> Render Static Sites
-      ├── payments-mfe ────────┤
-      └── insurance-mfe ───────┘
-
-      └── bff ───────────────────> Render Web Service
+Shell       http://localhost:4200
+Dashboard   http://localhost:4201
+Accounts    http://localhost:4202
+Payments    http://localhost:4203
+Insurance   http://localhost:4204
+BFF         http://localhost:4300
 ```
 
-Cada aplicação possui serviço, artefato e evolução independentes. O Shell resolve as URLs dos remotes por configuração de ambiente.
-
-## Terraform
-
-A infraestrutura Render será representada em `infrastructure/terraform` usando o provider oficial `render-oss/render`.
-
-O fluxo previsto inclui:
+Abra o Shell e navegue entre os domínios. A console técnica fica em:
 
 ```text
-terraform fmt -check
-terraform validate
-terraform plan
-terraform apply
+http://localhost:4200/architecture-health
 ```
 
-`plan` faz parte da revisão. `apply` deve ser protegido e secrets nunca são versionados.
+## Quality gates
 
-## Case opcional AWS
+```bash
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
 
-Após a arquitetura principal estar funcional no Render, uma trilha opcional poderá comparar a mesma solução com primitives AWS, como S3, CloudFront, Lambda, API Gateway e CloudWatch.
+Para a infraestrutura Render:
 
-Essa trilha não é requisito para considerar o projeto concluído.
+```bash
+pnpm render:validate
+pnpm render:plan
+```
 
-## Documentação
+O repositório também possui smoke HTTP reproduzível:
 
-A documentação canônica fica em [`packages/context`](./packages/context/README.md):
+```bash
+pnpm smoke
+pnpm smoke:production
+```
 
-- [`SDD.md`](./packages/context/SDD.md): arquitetura, fronteiras, decisões, segurança, performance, i18n, CI/CD e infraestrutura;
-- [`CI-CD.md`](./packages/context/CI-CD.md): pipeline, quality gates, deploy, smoke tests e rollback;
-- [`PROJECT-TASKS.md`](./packages/context/PROJECT-TASKS.md): fluxo incremental e critérios de conclusão;
-- [`ADR-001`](./packages/context/adr/ADR-001-architecture-validation-first.md): validação arquitetural antes da evolução funcional.
+## Decisão de encerramento da POC
+
+Esta versão é considerada **suficiente como demonstrativo arquitetural**. O objetivo não é simular um internet banking completo, e sim tornar decisões normalmente difíceis de visualizar fáceis de explicar:
+
+```text
+Shell
+  ↓
+Single-SPA
+  ↓
+runtime manifest
+  ↓
+Module Federation
+  ↓
+4 remotes independentes
+  ↓
+fallback + CI + Terraform + Render
+```
+
+Funcionalidades de produto, contratos financeiros, autenticação, design system, i18n, Swagger/OpenAPI, observabilidade avançada e demais itens continuam registrados no backlog para evolução futura, sem serem requisito para o fechamento desta POC.
+
+## Documentação técnica
+
+A documentação detalhada permanece em [`packages/context`](./packages/context/README.md):
+
+- [`SDD.md`](./packages/context/SDD.md) — visão arquitetural e fronteiras;
+- [`PROJECT-TASKS.md`](./packages/context/PROJECT-TASKS.md) — backlog e critérios de aceite;
+- [`CI-CD.md`](./packages/context/CI-CD.md) — CI, deploy, smoke e rollback;
+- [`ADR-001`](./packages/context/adr/ADR-001-architecture-validation-first.md) — Architecture Validation First;
+- [`ADR-004`](./packages/context/adr/ADR-004-runtime-manifest-and-controlled-rollback.md) — manifest e rollback controlado;
+- [`ADR-005`](./packages/context/adr/ADR-005-architecture-health-console.md) — preservação da Architecture Health Console;
+- [`ADR-006`](./packages/context/adr/ADR-006-controlled-render-cd.md) — estratégia de CD controlado no Render.
 
 ## Status
 
-🟢 **SDD 1.0 e fundação documental consolidados.**
+🟢 **POC arquitetural encerrada como demonstrativo.**
 
-A próxima etapa é iniciar `FMH-002` e seguir a trilha crítica de **Architecture Validation First** até o Architecture Gate.
+O repositório permanece aberto para evolução incremental, mas a prova principal — composição de Micro Frontends independentes em uma SPA, com runtime federation e infraestrutura reproduzível — está preservada.

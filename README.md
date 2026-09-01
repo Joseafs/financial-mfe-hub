@@ -89,7 +89,7 @@ flowchart LR
 <details>
 <summary><strong>Como seria essa arquitetura na AWS?</strong></summary>
 
-A infraestrutura realmente utilizada pela POC continua sendo **Terraform + Render**. A visão abaixo é apenas uma comparação arquitetural útil para discutir portabilidade e trade-offs em uma entrevista; ela **não representa um ambiente AWS publicado por este repositório**.
+A infraestrutura realmente utilizada pela POC continua sendo **Terraform + Render**. A visão abaixo mostra uma alternativa equivalente na AWS para comparar portabilidade e trade-offs; ela **não representa um ambiente AWS publicado por este repositório**.
 
 ```mermaid
 flowchart LR

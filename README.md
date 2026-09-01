@@ -37,6 +37,8 @@ A POC pública está hospedada no Render. A melhor entrada para entender o case 
 
 ## Arquitetura
 
+As mesmas cores usadas nos stubs da POC aparecem no diagrama para deixar ownership e fronteiras visíveis de imediato.
+
 ```mermaid
 flowchart LR
   User["Usuário"] --> Shell["Shell\nSingle-SPA"]
@@ -52,6 +54,7 @@ flowchart LR
   Insurance -. "Module Federation" .-> Runtime
 
   Shell --> Manifest["Runtime Manifest"]
+  Manifest -. "resolve URLs" .-> Runtime
 
   Terraform["Terraform"] -. "provisiona" .-> Render["Render Static Sites"]
   Render --> Shell
@@ -59,7 +62,102 @@ flowchart LR
   Render --> Accounts
   Render --> Payments
   Render --> Insurance
+
+  classDef user fill:#374151,stroke:#9CA3AF,color:#FFFFFF;
+  classDef render fill:#0F766E,stroke:#5EEAD4,color:#FFFFFF;
+  classDef shell fill:#0F172A,stroke:#38BDF8,color:#FFFFFF;
+  classDef dashboard fill:#1D4ED8,stroke:#93C5FD,color:#FFFFFF;
+  classDef accounts fill:#15803D,stroke:#86EFAC,color:#FFFFFF;
+  classDef payments fill:#7C3AED,stroke:#C4B5FD,color:#FFFFFF;
+  classDef insurance fill:#C2410C,stroke:#FDBA74,color:#FFFFFF;
+  classDef runtime fill:#334155,stroke:#94A3B8,color:#FFFFFF;
+  classDef manifest fill:#0E7490,stroke:#67E8F9,color:#FFFFFF;
+  classDef terraform fill:#5B21B6,stroke:#C4B5FD,color:#FFFFFF;
+
+  class User user;
+  class Render render;
+  class Shell shell;
+  class Dashboard dashboard;
+  class Accounts accounts;
+  class Payments payments;
+  class Insurance insurance;
+  class Runtime runtime;
+  class Manifest manifest;
+  class Terraform terraform;
 ```
+
+<details>
+<summary><strong>Como seria essa arquitetura na AWS?</strong></summary>
+
+A infraestrutura realmente utilizada pela POC continua sendo **Terraform + Render**. A visão abaixo é apenas uma comparação arquitetural útil para discutir portabilidade e trade-offs em uma entrevista; ela **não representa um ambiente AWS publicado por este repositório**.
+
+```mermaid
+flowchart LR
+  User["Usuário"] --> CDN["CloudFront"]
+  CDN --> Static["S3\nShell + MFEs"]
+
+  Static --> Shell["Shell\nSingle-SPA"]
+  Shell --> Dashboard["Dashboard MFE"]
+  Shell --> Accounts["Accounts MFE"]
+  Shell --> Payments["Payments MFE"]
+  Shell --> Insurance["Insurance MFE"]
+
+  Dashboard -. "Module Federation" .-> Runtime["Runtime remotes\nS3 + CloudFront"]
+  Accounts -. "Module Federation" .-> Runtime
+  Payments -. "Module Federation" .-> Runtime
+  Insurance -. "Module Federation" .-> Runtime
+
+  Shell --> Manifest["Runtime Manifest\nS3"]
+  Manifest -. "resolve URLs" .-> Runtime
+
+  Dashboard -. "API / evolução" .-> API["API Gateway"]
+  Accounts -. "API / evolução" .-> API
+  Payments -. "API / evolução" .-> API
+  Insurance -. "API / evolução" .-> API
+  API --> BFF["Lambda\nFastify BFF"]
+  BFF --> Observability["CloudWatch\nlogs + métricas"]
+
+  Terraform["Terraform\nAWS Provider"] -. "provisiona" .-> CDN
+  Terraform -. "provisiona" .-> Static
+  Terraform -. "provisiona" .-> API
+  Terraform -. "provisiona" .-> BFF
+
+  classDef user fill:#374151,stroke:#9CA3AF,color:#FFFFFF;
+  classDef aws fill:#B45309,stroke:#FCD34D,color:#FFFFFF;
+  classDef shell fill:#0F172A,stroke:#38BDF8,color:#FFFFFF;
+  classDef dashboard fill:#1D4ED8,stroke:#93C5FD,color:#FFFFFF;
+  classDef accounts fill:#15803D,stroke:#86EFAC,color:#FFFFFF;
+  classDef payments fill:#7C3AED,stroke:#C4B5FD,color:#FFFFFF;
+  classDef insurance fill:#C2410C,stroke:#FDBA74,color:#FFFFFF;
+  classDef runtime fill:#334155,stroke:#94A3B8,color:#FFFFFF;
+  classDef manifest fill:#0E7490,stroke:#67E8F9,color:#FFFFFF;
+  classDef bff fill:#4338CA,stroke:#A5B4FC,color:#FFFFFF;
+  classDef terraform fill:#5B21B6,stroke:#C4B5FD,color:#FFFFFF;
+
+  class User user;
+  class CDN,Static,API,Observability aws;
+  class Shell shell;
+  class Dashboard dashboard;
+  class Accounts accounts;
+  class Payments payments;
+  class Insurance insurance;
+  class Runtime runtime;
+  class Manifest manifest;
+  class BFF bff;
+  class Terraform terraform;
+```
+
+| POC no Render | Equivalente conceitual na AWS |
+| --- | --- |
+| Render Static Sites | S3 + CloudFront |
+| Runtime manifest em arquivo estático | S3 + CloudFront |
+| Render Web Service para uma futura evolução do BFF | Lambda + API Gateway |
+| Logs e métricas do Render | CloudWatch |
+| Terraform `render-oss/render` | Terraform AWS Provider |
+
+A comparação deixa explícito que **Single-SPA, Module Federation e o contrato dos remotes não dependem do Render**; a camada de infraestrutura pode mudar sem redesenhar a composição dos Micro Frontends.
+
+</details>
 
 ### Responsabilidades
 
